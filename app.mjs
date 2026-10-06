@@ -7,6 +7,12 @@ if (!profile) location.replace('./');
 const game = $('#game'), canvas = $('#board'), ctx = canvas.getContext('2d');
 let state = makeState(), previous = state, queue = [], progress = 1, startedAt = 0, lastFrame = 0;
 let graceUsed = false, best = null, runId = crypto.randomUUID(), audio = null, sound = false;
+// ---------- effects state ----------
+const rmq = window.matchMedia('(prefers-reduced-motion: reduce)');
+const NEVER = -1e9;
+let deathStart = NEVER, deathDelay = 0, deathId = 0, dying = false, overlayVisible = true;
+let gulpStart = NEVER, appleBorn = NEVER, eatPending = false;
+const pool = Array.from({length: 14}, () => ({on: false, k: 0, x: 0, y: 0, vx: 0, vy: 0, a: 0, va: 0, r: 0, vr: 0, born: 0, life: 1, size: 3, color: '#fff', star: false}));
 const pending = new Map(), submitting = new Set();
 const statuses = {ready: '준비', running: '플레이 중', collision: '게임 종료', win: '완주', aborted: '중도 종료'};
 
@@ -38,11 +44,59 @@ function setSave(text, type = '') {
   el.className = type;
 }
 function overlay(kicker, title, description, button) {
-  $('#overlay').hidden = false;
+  $('#overlay').hidden = false; overlayVisible = true;
+  $('#overlay').classList.remove('enter');
   $('#overlay-kicker').textContent = kicker;
   $('#overlay-title').textContent = title;
   $('#overlay-description').textContent = description;
   $('#play').textContent = button;
+}
+function spawn(p) { for (const q of pool) if (!q.on) { Object.assign(q, p, {on: true, born: performance.now()}); return; } }
+function activeParticles() { let n = 0; for (const q of pool) if (q.on) n++; return n; }
+function effectCount(now = performance.now()) {
+  return activeParticles() + (now - gulpStart < 400 ? 1 : 0) + (now - appleBorn < 280 ? 1 : 0) + (dying ? 1 : 0);
+}
+function easeOutBack(t) { const c = 1.9, u = t - 1; return 1 + (c + 1) * u * u * u + c * u * u; }
+function popScore() {
+  if (rmq.matches) return;
+  const el = $('#score'); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+}
+function fireEat(now = performance.now()) {
+  eatPending = false;
+  gulpStart = now; appleBorn = now;
+  if (rmq.matches || !previous.food) return;
+  const cx = (previous.food.x + .5) * 40, cy = (previous.food.y + .5) * 40;
+  for (let i = 0; i < 6; i++) {
+    const ang = i * Math.PI / 3 + Math.random() * .6, sp = 50 + Math.random() * 50;
+    spawn({k: 1, x: cx, y: cy, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 400, size: 3 + Math.random() * 2, color: i % 2 ? '#ed5144' : '#6fae3a', star: false});
+  }
+}
+function spawnDeath(head, cd) {
+  if (rmq.matches) return;
+  const hx = (head.x + .5) * 40, hy = (head.y + .5) * 40, base = Math.atan2(cd.y, cd.x);
+  for (let i = 0; i < 7; i++) {
+    spawn({k: 0, x: hx, y: hy, a: base + (i / 6 - .5) * 2.4, va: (i % 2 ? 1 : -1) * (.004 + Math.random() * .003), r: 20, vr: .012 + Math.random() * .014,
+      life: 750 + Math.random() * 150, size: 3 + Math.random() * 2.5, color: i % 2 ? '#fff' : '#ffe680', star: i % 3 !== 2});
+  }
+}
+function drawStar(x, y, r, rot) {
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) { const rr = i % 2 ? r * .4 : r, an = rot + i * Math.PI / 4; ctx.lineTo(x + Math.cos(an) * rr, y + Math.sin(an) * rr); }
+  ctx.closePath(); ctx.fill();
+}
+function drawParticles(now) {
+  for (const q of pool) {
+    if (!q.on) continue;
+    const age = now - q.born;
+    if (age >= q.life) { q.on = false; continue; }
+    const f = age / q.life; let x, y;
+    if (q.k === 0) { const an = q.a + q.va * age, rad = q.r + q.vr * age * 1000 / 1000 * 1; x = q.x + Math.cos(an) * rad; y = q.y + Math.sin(an) * rad; }
+    else { x = q.x + q.vx * age / 1000; y = q.y + q.vy * age / 1000; }
+    ctx.globalAlpha = q.k === 0 ? (age < 400 ? 1 : 1 - (age - 400) / (q.life - 400)) : 1 - f * f; ctx.fillStyle = q.color;
+    const s = q.size * (q.k ? 1 - f * .6 : 1);
+    if (q.star) drawStar(x, y, s * 2.1, age * .008); else { ctx.beginPath(); ctx.arc(x, y, s * .8, 0, Math.PI * 2); ctx.fill(); }
+  }
+  ctx.globalAlpha = 1;
 }
 function drawApple(food, scale = 1) {
   if (!food || scale <= 0) return;
@@ -65,37 +119,73 @@ function strokeRoute(points, width, color) {
 }
 let lastScoreText = '', lastStateText = '';
 function draw(alpha = progress) {
+  const now = performance.now(), dead = state.mode === 'collision', dt = dead ? now - deathStart : 0;
   ctx.clearRect(0, 0, 680, 600);
+  ctx.save();
+  if (dead && !rmq.matches && dt < 260) { const k = 4 * (1 - dt / 260); ctx.translate(Math.round((Math.random() * 2 - 1) * k), Math.round((Math.random() * 2 - 1) * k)); }
+  ctx.fillStyle = '#a2d149'; ctx.fillRect(-10, -10, 700, 620);
   for (let y = 0; y < RULES.rows; y++) for (let x = 0; x < RULES.cols; x++) {
     ctx.fillStyle = (x + y) % 2 ? '#a2d149' : '#aad751';
-    ctx.fillRect(x * 40, y * 40, 40, 40);
+    ctx.fillRect(x * 40, y * 40, 41, 41);
   }
-  if (state.ate && state.mode === 'running') {
-    drawApple(previous.food, 1 - alpha * .8);
-    if (alpha > .7) drawApple(state.food, Math.min(1, (alpha - .7) / .3));
-  } else drawApple(state.food);
+  const ateStep = state.ate && state.mode === 'running';
+  if (ateStep && eatPending && alpha >= .7) fireEat(now);
+  if (ateStep && alpha < 1) drawApple(previous.food, alpha < .7 ? 1 : (1 - alpha) / .3);
+  const pop = now - appleBorn;
+  drawApple(state.food, eatPending ? 0 : pop >= 280 ? 1 : Math.max(0, easeOutBack(pop / 280)));
   const route = routeForFrame(previous, state, alpha);
   const bodyEnd = Math.max(.05, route.length - .5);
-  strokeRoute(trimRoute(route.points, bodyEnd), 27, '#416de4');
+  const blink = dead && !rmq.matches && ((dt > 200 && dt < 320) || (dt > 420 && dt < 540));
+  const bodyColor = blink ? '#2b479e' : '#416de4';
+  strokeRoute(trimRoute(route.points, bodyEnd), 27, bodyColor);
   const tailSteps = 12;
   for (let i = 0; i < tailSteps; i++) {
     const a = bodyEnd + i * .5 / tailSteps, b = bodyEnd + (i + 1) * .5 / tailSteps;
-    strokeRoute([pointAt(route.points, a), pointAt(route.points, b)], Math.max(1.4, 27 * (1 - i / tailSteps)), '#416de4');
+    strokeRoute([pointAt(route.points, a), pointAt(route.points, b)], Math.max(1.4, 27 * (1 - i / tailSteps)), bodyColor);
+  }
+  const g = (now - gulpStart) / 400;
+  if (g >= 0 && g < 1 && !dead) {
+    const p = pointAt(route.points, g * bodyEnd);
+    ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.arc((p.x + .5) * 40, (p.y + .5) * 40, 13.5 + 3.5 * Math.sin(Math.PI * g), 0, Math.PI * 2); ctx.fill();
   }
   // Eyes look toward the next queued turn so a buffered input is visible immediately.
-  const h = route.head, d = queue[0] || route.direction;
-  const hx = (h.x + .5) * 40, hy = (h.y + .5) * 40;
-  ctx.fillStyle = '#416de4'; ctx.beginPath(); ctx.arc(hx, hy, 14.5, 0, Math.PI * 2); ctx.fill();
+  const h = route.head, cd = state.crashDirection || route.direction, d = dead ? cd : queue[0] || route.direction;
+  let hx = (h.x + .5) * 40, hy = (h.y + .5) * 40, sq = 0;
+  if (dead && dt < 180) {
+    const p = dt / 180;
+    sq = p < .4 ? p / .4 : Math.cos((p - .4) / .6 * Math.PI * 1.5) * (1 - (p - .4) / .6);
+    hx += cd.x * sq * 12; hy += cd.y * sq * 12;
+  }
+  const ang = Math.atan2(d.y, d.x);
+  ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang); ctx.scale(1 - .2 * Math.abs(sq), 1 + .2 * Math.abs(sq));
+  ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.arc(0, 0, 14.5, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  // Mouth opens from 2 cells away, fully open (~74deg) at <=0.6 cell, shut on arrival (chomp).
+  let open = 0;
+  const target = ateStep ? previous.food : state.food;
+  if (target && state.mode === 'running') {
+    const fx = target.x - h.x, fy = target.y - h.y, fwd = fx * d.x + fy * d.y, side = Math.abs(fx * d.y - fy * d.x);
+    if (side < .3 && fwd > .25 && fwd <= 2) open = Math.min(1, (2 - fwd) / 1.4);
+  }
+  if (open > 0) {
+    const half = .65 * open;
+    ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang);
+    ctx.fillStyle = '#1d2f6b'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 16.5, -half, half); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#e8665f'; ctx.beginPath(); ctx.moveTo(2, 0); ctx.arc(0, 0, 11 * open + 2, -half * .55, half * .55); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
   for (const side of [-1, 1]) {
-    const ex = hx + d.x * 7 - d.y * side * 8, ey = hy + d.y * 7 + d.x * side * 8;
-    ctx.fillStyle = '#f9fcff'; ctx.beginPath(); ctx.ellipse(ex, ey, 6.1, 6.7, Math.atan2(d.y, d.x), 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#263b7c'; ctx.beginPath(); ctx.arc(ex + d.x * 2, ey + d.y * 2, 3.2, 0, Math.PI * 2); ctx.fill();
+    const ex = hx + d.x * (7 - open * 5) - d.y * side * (8 + open * 2), ey = hy + d.y * (7 - open * 5) + d.x * side * (8 + open * 2);
+    ctx.fillStyle = '#f9fcff'; ctx.beginPath(); ctx.ellipse(ex, ey, 6.1, 6.7, ang, 0, Math.PI * 2); ctx.fill();
+    if (dead) {
+      ctx.strokeStyle = '#263b7c'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.beginPath();
+      ctx.moveTo(ex - 3.4, ey - 3.4); ctx.lineTo(ex + 3.4, ey + 3.4); ctx.moveTo(ex + 3.4, ey - 3.4); ctx.lineTo(ex - 3.4, ey + 3.4); ctx.stroke();
+    } else { ctx.fillStyle = '#263b7c'; ctx.beginPath(); ctx.arc(ex + d.x * 2, ey + d.y * 2, 3.2, 0, Math.PI * 2); ctx.fill(); }
   }
-  if (state.mode === 'collision') {
-    ctx.fillStyle = '#e8514333'; ctx.beginPath(); ctx.arc(hx, hy, 24, 0, Math.PI * 2); ctx.fill();
-  }
+  drawParticles(now);
+  ctx.restore();
   const scoreText = String(state.score), stateText = statuses[state.mode] || '준비';
-  if (scoreText !== lastScoreText) $('#score').textContent = lastScoreText = scoreText;
+  if (scoreText !== lastScoreText) { if (lastScoreText !== '' && state.score > Number(lastScoreText)) popScore(); $('#score').textContent = lastScoreText = scoreText; }
   if (stateText !== lastStateText) $('#game-state').textContent = lastStateText = stateText;
 }
 function tone(type) {
@@ -115,6 +205,8 @@ function tone(type) {
 
 // ---------- game flow ----------
 function reset() {
+  dying = false; deathStart = NEVER; deathId++; gulpStart = NEVER; appleBorn = NEVER; eatPending = false;
+  for (const q of pool) q.on = false;
   state = makeState(); previous = state; progress = 1; queue = []; runId = crypto.randomUUID(); startedAt = 0;
   $('#abort').disabled = true;
   $('#best').textContent = best ?? '-';
@@ -125,6 +217,7 @@ function reset() {
   game.focus({preventScroll: true});
 }
 function begin(direction) {
+  overlayVisible = false;
   state = {...state, mode: 'running'};
   $('#overlay').hidden = true;
   $('#abort').disabled = false;
@@ -135,6 +228,7 @@ function begin(direction) {
   step();
 }
 function step() {
+  if (eatPending) fireEat();
   const next = queue.length ? queue.shift() : state.direction;
   previous = state;
   state = advance(state, next);
@@ -146,7 +240,7 @@ function afterStep() {
   if (state.mode === 'collision' || state.mode === 'win') {
     previous = state; progress = 1; queue = [];
     finish();
-  } else if (state.ate) tone('eat');
+  } else if (state.ate) { tone('eat'); eatPending = true; } else eatPending = false;
 }
 function handleDirection(name) {
   const d = DIRECTIONS[name];
@@ -184,6 +278,9 @@ function frame(now) {
       }
       draw();
     }
+  } else {
+    if (dying && now - deathStart >= deathDelay) showResultModal();
+    if (dying || effectCount() > 0) draw();
   }
   requestAnimationFrame(frame);
 }
@@ -193,10 +290,23 @@ function finish() {
   $('#best').textContent = best;
   $('#abort').disabled = true;
   tone('end');
-  overlay(endedBy === 'win' ? 'BOARD COMPLETE' : 'GAME OVER', endedBy === 'win' ? '모든 칸을 채웠어요!' : '이번 기록 ' + score + '점', '다시 시작해 나의 최고점에 도전해요.', '다시 시작');
-  $('#overlay-foot').textContent = 'Enter 또는 버튼으로 다시 시작';
   submitResult({runId, studentId: profile.studentId, name: profile.name, grade: profile.grade, classNo: profile.classNo, score,
     elapsedMs: Math.round(performance.now() - startedAt), ticks: state.ticks, endedBy, version: RULES.version});
+  // Result modal waits for the death/win animation.
+  dying = true; deathStart = performance.now(); eatPending = false;
+  deathDelay = rmq.matches ? 350 : endedBy === 'win' ? 500 : 1000;
+  if (endedBy === 'collision') spawnDeath(state.snake[0], state.crashDirection || state.direction);
+  const id = ++deathId;
+  setTimeout(() => { if (dying && id === deathId) showResultModal(); }, deathDelay + 50);
+  draw();
+}
+function showResultModal() {
+  if (!dying) return;
+  dying = false;
+  const win = state.mode === 'win';
+  overlay(win ? 'BOARD COMPLETE' : 'GAME OVER', win ? '모든 칸을 채웠어요!' : '이번 기록 ' + state.score + '점', '다시 시작해 나의 최고점에 도전해요.', '다시 시작');
+  $('#overlay-foot').textContent = 'Enter 또는 버튼으로 다시 시작';
+  const el = $('#overlay'); void el.offsetWidth; el.classList.add('enter');
   draw();
 }
 function abort(message = '중도 종료했습니다. 이 판의 기록은 저장하지 않습니다.') {
@@ -224,7 +334,7 @@ window.addEventListener('keydown', event => {
   if (event.code === 'Escape' || event.key === 'Escape') {
     event.preventDefault();
     abort();
-  } else if ((event.code === 'Enter' || event.code === 'Space' || event.code === 'NumpadEnter') && !['ready', 'running'].includes(state.mode)) {
+  } else if ((event.code === 'Enter' || event.code === 'Space' || event.code === 'NumpadEnter') && !['ready', 'running'].includes(state.mode) && overlayVisible) {
     event.preventDefault();
     reset();
   } else if (event.code === 'Space') {
@@ -233,7 +343,7 @@ window.addEventListener('keydown', event => {
 }, {capture: true});
 $('#play').addEventListener('click', () => {
   if (state.mode === 'ready') begin(DIRECTIONS.right);
-  else reset();
+  else if (overlayVisible && state.mode !== 'running') reset();
 });
 // Buttons must not keep focus, otherwise Space/Enter would re-trigger them.
 for (const b of document.querySelectorAll('button')) b.addEventListener('mouseup', () => b.blur());
@@ -323,6 +433,6 @@ refreshMine();
 
 // Read-only runtime metrics for development checks; no personal data exposed.
 window.GAJWA_DEBUG = Object.freeze({
-  getState: () => ({mode: state.mode, score: state.score, ticks: state.ticks, progress, queue: queue.length, head: {...state.snake[0]}, direction: {...state.direction}}),
+  getState: () => ({mode: state.mode, score: state.score, ticks: state.ticks, progress, queue: queue.length, head: {...state.snake[0]}, direction: {...state.direction}, overlayVisible, effects: effectCount()}),
   getPendingCount: () => pending.size,
 });
