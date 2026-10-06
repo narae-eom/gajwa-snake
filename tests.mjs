@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {makeState,advance,DIRECTIONS,allowed,routeForFrame,pointAt,newFood,rankEntries} from './engine.mjs';
+import {makeState,advance,DIRECTIONS,allowed,routeForFrame,pointAt,newFood,rankEntries,enqueueDirection,directionFromKey,parseStudentId} from './engine.mjs';
 let passed=0;function test(name,fn){fn();passed++;console.log('PASS '+name);}
 test('one apple increases score and body',()=>{const s={...makeState(),food:{x:4,y:7}};const n=advance(s,DIRECTIONS.right,()=>0);assert.equal(n.score,1);assert.equal(n.snake.length,5);assert.ok(!n.snake.some(p=>p.x===n.food.x&&p.y===n.food.y));});
 test('ordinary move preserves length',()=>assert.equal(advance(makeState()).snake.length,4));
@@ -16,4 +16,11 @@ test('competition ranks tied scores',()=>assert.deepEqual(rankEntries(records).m
 test('class filter applied before ranking',()=>assert.deepEqual(rankEntries(records,{grade:2,classNo:2}).map(r=>r.rank),[1]));
 test('ties at rank ten are not arbitrarily cut off',()=>{const a=Array.from({length:13},(_,i)=>({studentId:String(i),grade:1,classNo:1,score:i<9?100-i:1,savedAt:'2026-10-06'}));const r=rankEntries(a);assert.equal(r.length,13);assert.ok(r.slice(9).every(x=>x.rank===10));});
 test('same short ID in different classes stays separate',()=>{assert.equal(rankEntries([...records,{studentId:'10101',name:'다른가상',grade:2,classNo:3,score:8,savedAt:'2026-10-06'}]).length,4);});
+const {up,down,left,right}=DIRECTIONS;
+test('two quick turns in one tick are both kept (no dropped key)',()=>{let q=enqueueDirection([],right,up);q=enqueueDirection(q,right,left);assert.deepEqual(q,[up,left]);});
+test('buffered turn validated against last queued direction',()=>{let q=enqueueDirection([],right,up);assert.deepEqual(enqueueDirection(q,right,down),[up]);assert.deepEqual(enqueueDirection([],right,left),[]);});
+test('duplicate and overflow inputs ignored',()=>{let q=enqueueDirection([],right,right);assert.equal(q.length,0);q=[up,left,down];assert.equal(enqueueDirection(q,right,right).length,3);});
+test('queued U-turn executes over two ticks without self-collision',()=>{let s={...makeState()};let q=enqueueDirection(enqueueDirection([],s.direction,up),s.direction,left);s=advance(s,q.shift());s=advance(s,q.shift());assert.equal(s.mode,'running');assert.deepEqual(s.snake[0],{x:2,y:6});});
+test('keys work with Korean IME (code) and key fallbacks',()=>{assert.equal(directionFromKey('KeyW','ㅈ'),'up');assert.equal(directionFromKey('','ㅁ'),'left');assert.equal(directionFromKey('ArrowDown','Process'),'down');assert.equal(directionFromKey('KeyQ','q'),null);});
+test('5-digit student ID parses grade/class/number',()=>{assert.deepEqual(parseStudentId('10203'),{studentId:'10203',grade:1,classNo:2,number:3});assert.equal(parseStudentId('40101'),null);assert.equal(parseStudentId('10001'),null);assert.equal(parseStudentId('10100'),null);assert.equal(parseStudentId('1020'),null);});
 console.log(passed+' tests passed.');

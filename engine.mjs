@@ -1,4 +1,4 @@
-export const RULES = Object.freeze({cols:17,rows:15,tickMs:140,initialLength:4,version:'1.0.0'});
+export const RULES = Object.freeze({cols:17,rows:15,tickMs:130,initialLength:4,version:'1.1.0',inputBuffer:3,turnGrace:.25});
 export const DIRECTIONS = Object.freeze({up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}});
 export const equal=(a,b)=>!!a&&!!b&&a.x===b.x&&a.y===b.y;
 export function makeState(){return {snake:[{x:3,y:7},{x:2,y:7},{x:1,y:7},{x:0,y:7}],direction:DIRECTIONS.right,food:{x:12,y:7},score:0,ticks:0,mode:'ready',ate:false};}
@@ -10,3 +10,12 @@ export function routeForFrame(previous,current,alpha){const a=Math.max(0,Math.mi
 export function pointAt(points,distance){let left=distance;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],length=Math.hypot(b.x-a.x,b.y-a.y);if(length===0)continue;if(left<=length)return {x:a.x+(b.x-a.x)*left/length,y:a.y+(b.y-a.y)*left/length};left-=length;}return points.at(-1);}
 export function trimRoute(points,length){const out=[points[0]];let left=length;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],d=Math.hypot(b.x-a.x,b.y-a.y);if(d===0)continue;if(left<=d){out.push({x:a.x+(b.x-a.x)*left/d,y:a.y+(b.y-a.y)*left/d});break;}out.push(b);left-=d;}return out;}
 export function rankEntries(records,{grade='',classNo=''}={}){const best=new Map();for(const r of records){if(grade&&String(r.grade)!==String(grade)||classNo&&String(r.classNo)!==String(classNo))continue;const identity=String(r.grade)+':'+String(r.classNo)+':'+String(r.studentId);const old=best.get(identity);if(!old||Number(r.score)>Number(old.score)||Number(r.score)===Number(old.score)&&String(r.savedAt)<String(old.savedAt))best.set(identity,r);}const list=[...best.values()].sort((a,b)=>b.score-a.score||String(a.savedAt).localeCompare(String(b.savedAt))||String(a.studentId).localeCompare(String(b.studentId)));let previousScore=null,rank=0;return list.map((r,i)=>{if(r.score!==previousScore)rank=i+1;previousScore=r.score;return {...r,rank};}).filter(r=>r.rank<=10);}
+
+// Keyboard: physical key codes work regardless of Korean/English IME state.
+export const KEY_TO_DIRECTION=Object.freeze({ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',KeyW:'up',KeyA:'left',KeyS:'down',KeyD:'right'});
+const KEY_FALLBACK={arrowup:'up',arrowdown:'down',arrowleft:'left',arrowright:'right',w:'up',a:'left',s:'down',d:'right','ㅈ':'up','ㅁ':'left','ㄴ':'down','ㅇ':'right',up:'up',down:'down',left:'left',right:'right'};
+export function directionFromKey(code,key){return KEY_TO_DIRECTION[code]||KEY_FALLBACK[String(key||'').toLowerCase()]||null;}
+// Buffer quick successive turns (e.g. up then left inside one tick) instead of dropping them.
+export function enqueueDirection(queue,current,next,max=RULES.inputBuffer){if(!next||queue.length>=max)return queue;const last=queue.length?queue[queue.length-1]:current;if(equal(last,next)||!allowed(last,next))return queue;return [...queue,next];}
+// 5-digit school ID: grade(1) + class(2) + number(2), e.g. 10203 = 1학년 2반 3번.
+export function parseStudentId(value){const id=String(value??'').trim();if(!/^[1-3][0-9]{4}$/.test(id))return null;const grade=Number(id[0]),classNo=Number(id.slice(1,3)),number=Number(id.slice(3));if(classNo<1||classNo>30||number<1)return null;return {studentId:id,grade,classNo,number};}

@@ -1,8 +1,43 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#4a762c"><meta name="description" content="가좌중학교 학생을 위한 스네이크 게임. 학교 전체와 반별 랭킹."><title>가좌 스네이크</title><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="style.css"></head><body>
-<header class="site-header"><a class="brand" href="./"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M9 29V15Q9 9 16 9H24Q31 9 31 16V23" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="29" cy="20" r="2" fill="#fff"/></svg><span>가좌 <strong>스네이크</strong><small>GAJWA MIDDLE SCHOOL</small></span></a><div class="header-right"><span id="profile-label">오늘의 최고 기록에 도전해요</span><span class="edition">기본판</span></div></header>
-<main class="layout"><section class="play-panel" aria-label="게임"><div class="play-top"><div><span class="eyebrow">PLAY & GROW</span><h1>한 칸씩, 더 길게.</h1></div><div class="game-actions"><button id="sound" class="icon-button" aria-label="소리 켜기" aria-pressed="false">소리 꺼짐</button><button id="fullscreen" class="icon-button" aria-label="게임 전체 화면">전체 화면</button></div></div>
-<div class="game-frame" id="game" tabindex="0" role="group" aria-label="스네이크 게임판. 방향키 또는 WASD로 조작합니다."><div class="game-bar"><div class="score-cell"><svg viewBox="0 0 30 32" aria-label="사과" role="img"><path d="M15 10C2 0 0 26 13 29C27 29 29 1 15 10" fill="#ed5144"/><path d="M15 9L17 2" stroke="#70572d" stroke-width="3"/><ellipse cx="23" cy="5" rx="6" ry="3" fill="#9cce58"/></svg><span id="score">0</span></div><div class="best-cell"><span>내 최고</span><b id="best">-</b></div><span class="game-state" id="game-state">준비</span></div><div class="board-wrap"><canvas id="board" width="680" height="600" aria-label="17열 15행 게임판"></canvas><div class="board-overlay" id="overlay"><div class="overlay-card"><span class="overlay-kicker" id="overlay-kicker">READY TO PLAY</span><h2 id="overlay-title">길게 자라는 즐거움</h2><p id="overlay-description">학번과 이름을 확인하고<br>게임을 시작해 보세요.</p><button id="play" class="primary" disabled>게임 시작</button><p class="overlay-foot" id="overlay-foot">방향키 또는 W A S D</p></div></div></div></div>
-<div class="under-game"><p id="save-state" role="status" aria-live="polite">학생 정보를 입력하면 시작할 수 있어요.</p><div><button id="retry-save" class="text-button" hidden>저장 다시 확인</button> <button id="abort" class="text-button" disabled>중도 종료</button></div></div><div class="key-guide"><span><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> / <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동</span><span><kbd>Esc</kbd> 중도 종료 · 저장 안 됨</span></div><p class="game-note">벽과 몸을 피하고 사과를 먹어 보세요. 탭을 벗어나면 중도 종료됩니다.</p></section>
-<aside class="side-panel"><section class="identity-card"><div class="card-title"><h2>학생 정보</h2><button id="change-profile" class="text-button" hidden>변경</button></div><form id="student-form"><div class="form-grid"><label>학년<select id="grade" required><option value="">선택</option><option value="1">1학년</option><option value="2">2학년</option><option value="3">3학년</option></select></label><label>반<select id="class-no" required><option value="">선택</option></select></label></div><label>학번<input id="student-id" required inputmode="numeric" pattern="[0-9]{1,12}" maxlength="12" autocomplete="off" placeholder="학번을 입력하세요"></label><label>이름<input id="student-name" required maxlength="20" autocomplete="off" placeholder="이름을 입력하세요"></label><p class="privacy-note">입력한 학번과 이름이 랭킹에 그대로 표시됩니다. 본인의 정보를 입력해 주세요.</p><button type="submit" class="confirm">입력 확인</button></form><div id="profile-summary" hidden><p id="profile-name"></p><p id="profile-detail"></p></div></section>
-<section class="ranking-card" aria-label="학교 및 반별 랭킹"><div class="card-title"><h2>우리 학교 랭킹</h2><span class="live-label"><i id="connection-dot"></i>약 5초 갱신</span></div><div class="rank-tabs" role="group" aria-label="랭킹 범위"><button id="all-rank" class="selected" aria-pressed="true">학교 전체</button><button id="class-rank" aria-pressed="false">반별 보기</button></div><div id="rank-filters" class="form-grid" hidden><label>학년<select id="rank-grade"><option value="1">1학년</option><option value="2">2학년</option><option value="3">3학년</option></select></label><label>반<select id="rank-class"></select></label></div><div class="rank-table-wrap"><table class="rank-table"><thead><tr><th>순위</th><th>학생</th><th>점수</th></tr></thead><tbody id="rank-body"><tr><td colspan="3" class="empty">랭킹을 불러오는 중입니다.</td></tr></tbody></table></div><p id="rank-state" class="rank-state" role="status">시트 연결을 확인하고 있어요.</p><p class="rank-note">개인 최고점 기준 · 동점은 동순위<br>1~10위 표시, 10위 동점자는 모두 표시</p></section></aside></main>
-<footer>가좌중학교 학생용 · 사과 1개 = 1점 · 기록은 관리자가 삭제할 때까지 보존됩니다.<br><span>공유 링크로 접속하며 학생 본인 인증 기능은 없습니다.</span></footer><script src="config.js"></script><script type="module" src="app.mjs"></script></body></html>
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#4a762c">
+<meta name="description" content="가좌중학교 스네이크 게임 입장. 학번과 이름을 입력하세요.">
+<title>가좌 스네이크 · 입장</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="entry-body">
+<main class="entry">
+  <section class="entry-card" aria-labelledby="entry-title">
+    <div class="entry-hero" aria-hidden="true">
+      <svg viewBox="0 0 220 90" class="hero-snake">
+        <path d="M18 62H112Q132 62 132 42V36Q132 22 146 22H176" fill="none" stroke="#416de4" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="181" cy="17" r="5.5" fill="#fff"/><circle cx="181" cy="29" r="5.5" fill="#fff"/>
+        <circle cx="183" cy="17" r="2.8" fill="#263b7c"/><circle cx="183" cy="29" r="2.8" fill="#263b7c"/>
+        <path d="M206 50C196 42 192 66 203 70C215 70 216 44 206 50" fill="#ed5144"/><path d="M205 49L207 42" stroke="#70572d" stroke-width="2.5"/>
+      </svg>
+    </div>
+    <span class="eyebrow">GAJWA MIDDLE SCHOOL</span>
+    <h1 id="entry-title">가좌 스네이크</h1>
+    <p class="entry-lead">학번과 이름을 입력하고 게임을 시작하세요.</p>
+    <form id="entry-form" novalidate>
+      <label for="student-id">학번</label>
+      <input id="student-id" name="studentId" required inputmode="numeric" maxlength="5" autocomplete="off" placeholder="예: 10203" aria-describedby="id-preview">
+      <p id="id-preview" class="id-preview" aria-live="polite">학번 5자리 = 학년 1자리 + 반 2자리 + 번호 2자리</p>
+      <label for="student-name">이름</label>
+      <input id="student-name" name="name" required maxlength="20" autocomplete="off" placeholder="이름을 입력하세요">
+      <p class="privacy-note">입력한 학번과 이름이 랭킹에 그대로 표시됩니다. 꼭 본인 정보로 입력해 주세요.</p>
+      <p id="entry-error" class="entry-error" role="alert"></p>
+      <button type="submit" class="primary entry-submit">게임 시작하기</button>
+    </form>
+    <a class="board-link" href="board.html">실시간 랭킹 보드 보기 →</a>
+  </section>
+  <p class="entry-foot">사과 1개 = 1점 · 개인 최고점으로 랭킹이 정해져요 · 중도 종료한 판은 저장되지 않아요</p>
+</main>
+<script src="config.js"></script>
+<script type="module" src="entry.mjs"></script>
+</body>
+</html>

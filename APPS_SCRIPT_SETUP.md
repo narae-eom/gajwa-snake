@@ -107,6 +107,28 @@ GET {appsScriptUrl}?action=<action>&callback=<callbackName>&...
   의미상 최신 데이터로 갱신됩니다).
 - 프론트엔드는 **5초 주기 폴링**으로 "근실시간" 갱신을 구현하는 것을 전제로 설계되었습니다.
 
+#### `action=board` (1.1.0, 랭킹 보드용)
+
+`?action=board&callback=__gajwaCb_x` (전교) 또는 `&grade=1&classNo=2` (반). 시트를 한 번 읽어 다음을 반환합니다.
+
+```json
+{ "ok": true, "scope": {"grade": 1, "classNo": 2},
+  "entries": [{"rank":1,"studentId":"10203","name":"…","grade":1,"classNo":2,"score":12,"savedAt":"…"}],
+  "participants": 23, "plays": 81,
+  "classStats": [{"grade":1,"classNo":2,"participants":23,"average":8.4,"top":12}],
+  "recent": [{"studentId":"10203","name":"…","grade":1,"classNo":2,"score":5,"savedAt":"…"}],
+  "updatedAt": "…", "revision": 12 }
+```
+
+- entries: 범위 내 개인 최고점 TOP 10(동순위, 10위 동점자 모두 포함)
+- classStats: 전교 모든 반의 참여 인원·개인 최고점 평균·최고점 (반 대항전)
+- recent: 전교 최근 저장 5건
+- 리비전 기반 최대 3초 캐시를 사용합니다.
+
+#### 학번 검증 (1.1.0)
+
+제출 시 `studentId`는 5자리(학년1+반2+번호2)여야 하며, 학년·반은 서버가 학번에서 계산합니다. 클라이언트가 보낸 학년·반이 학번과 다르면 `ID_CLASS_MISMATCH`로 거부합니다.
+
 #### `action=status`
 
 파라미터: `runId` (필수, UUID v4 형식)

@@ -231,6 +231,8 @@ function doGet(e) {
   try {
     if (action === 'leaderboard') {
       result = handleLeaderboard_(params);
+    } else if (action === 'board') {
+      result = handleBoard_(params);
     } else if (action === 'status') {
       result = handleStatus_(params);
     } else if (action === 'health') {
@@ -540,8 +542,9 @@ function validateSubmission_(data) {
     return { ok: false, error: 'INVALID_STUDENT_ID', message: 'studentId가 없습니다.' };
   }
   var studentId = String(data.studentId).trim();
-  if (studentId.length < 1 || studentId.length > 20 || !/^[0-9]+$/.test(studentId)) {
-    return { ok: false, error: 'INVALID_STUDENT_ID', message: 'studentId는 숫자로만 구성된 문자열이어야 합니다(앞자리 0 보존).' };
+  var parsedId = parseStudentId_(studentId);
+  if (!parsedId) {
+    return { ok: false, error: 'INVALID_STUDENT_ID', message: 'studentId는 5자리 학번(학년1+반2+번호2, 예: 10203)이어야 합니다.' };
   }
 
   // name: 문자열, NFC 정규화, 길이 제한, 공백만 금지
@@ -553,16 +556,11 @@ function validateSubmission_(data) {
     return { ok: false, error: 'INVALID_NAME', message: 'name 길이가 올바르지 않습니다.' };
   }
 
-  // grade
-  var grade = Number(data.grade);
-  if (!isInt_(grade) || grade < GRADE_MIN || grade > GRADE_MAX) {
-    return { ok: false, error: 'INVALID_GRADE', message: 'grade는 1~3 사이 정수여야 합니다.' };
-  }
-
-  // classNo
-  var classNo = Number(data.classNo);
-  if (!isInt_(classNo) || classNo < CLASS_MIN || classNo > CLASS_MAX) {
-    return { ok: false, error: 'INVALID_CLASSNO', message: 'classNo는 1~30 사이 정수여야 합니다.' };
+  // grade / classNo: 학번에서 서버가 직접 계산 (클라이언트 값과 다르면 거부)
+  var grade = parsedId.grade;
+  var classNo = parsedId.classNo;
+  if ((data.grade !== undefined && Number(data.grade) !== grade) || (data.classNo !== undefined && Number(data.classNo) !== classNo)) {
+    return { ok: false, error: 'ID_CLASS_MISMATCH', message: '학번과 학년/반 정보가 일치하지 않습니다.' };
   }
 
   // score
@@ -706,4 +704,119 @@ function rebuildTop10Sheet_() {
     return [e.rank, e.grade, e.classNo, sanitizeSheetCell_(e.studentId), sanitizeSheetCell_(e.name), e.score];
   });
   top10.getRange(2, 1, rows.length, 6).setValues(rows);
+}
+
+// ============================================================================
+// 학번 해석 (5자리: 학년1 + 반2 + 번호2, 예: 10203 = 1학년 2반 3번)
+// ============================================================================
+
+function parseStudentId_(id) {
+  var s = String(id == null ? '' : id).trim();
+  if (!/^[1-3][0-9]{4}$/.test(s)) return null;
+  var grade = Number(s.charAt(0)), classNo = Number(s.substr(1, 2)), number = Number(s.substr(3, 2));
+  if (classNo < CLASS_MIN || classNo > CLASS_MAX || number < 1) return null;
+  return { grade: grade, classNo: classNo, number: number };
+}
+
+// ============================================================================
+// board: 랭킹 보드용 묶음 응답 (TOP10 + 참여 인원 + 반 대항전 + 방금 기록)
+// 시트를 한 번만 읽어 모든 값을 계산하고, 리비전 기반 캐시를 공유합니다.
+// ============================================================================
+
+function readRecordRows_() {
+  var sheet = getRecordsSheet_();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var values = sheet.getRange(2, 1, lastRow - 1, HEADER.length).getValues();
+  var rows = [];
+  for (var i = 0; i < values.length; i++) {
+    var r = values[i];
+    if (!r[0]) continue;
+    rows.push({ studentId: String(r[1]), name: String(r[2]), grade: Number(r[3]), classNo: Number(r[4]), score: Number(r[5]) || 0, savedAt: toIsoString_(r[10]) });
+  }
+  return rows;
+}
+
+function bestPerStudent_(rows) {
+  var best = {};
+  rows.forEach(function (r) {
+    var key = r.grade + ':' + r.classNo + ':' + r.studentId;
+    var old = best[key];
+    if (!old || r.score > old.score || (r.score === old.score && String(r.savedAt) < String(old.savedAt))) best[key] = r;
+  });
+  return Object.keys(best).map(function (k) { return best[k]; });
+}
+
+function rankTop10_(list) {
+  list = list.slice().sort(function (a, b) { return b.score - a.score || String(a.savedAt).localeCompare(String(b.savedAt)) || String(a.studentId).localeCompare(String(b.studentId)); });
+  var out = [], prevScore = null, prevRank = 0;
+  for (var i = 0; i < list.length; i++) {
+    var rank = (prevScore !== null && list[i].score === prevScore) ? prevRank : i + 1;
+    prevScore = list[i].score; prevRank = rank;
+    if (rank > 10) break;
+    out.push({ rank: rank, studentId: list[i].studentId, name: list[i].name, grade: list[i].grade, classNo: list[i].classNo, score: list[i].score, savedAt: list[i].savedAt });
+  }
+  return out;
+}
+
+function computeBoard_(grade, classNo) {
+  var rows = readRecordRows_();
+  var bests = bestPerStudent_(rows);
+  var inScope = function (r) { return (grade === null || r.grade === grade) && (classNo === null || r.classNo === classNo); };
+  var scoped = bests.filter(inScope);
+
+  var groups = {};
+  bests.forEach(function (r) {
+    var key = r.grade + ':' + r.classNo;
+    var g = groups[key] || (groups[key] = { grade: r.grade, classNo: r.classNo, participants: 0, total: 0, top: 0 });
+    g.participants++; g.total += r.score; g.top = Math.max(g.top, r.score);
+  });
+  var classStats = Object.keys(groups).map(function (k) {
+    var g = groups[k];
+    return { grade: g.grade, classNo: g.classNo, participants: g.participants, average: Math.round(g.total / g.participants * 10) / 10, top: g.top };
+  }).sort(function (a, b) { return a.grade - b.grade || a.classNo - b.classNo; });
+
+  var recent = [];
+  for (var i = rows.length - 1; i >= 0 && recent.length < 5; i--) {
+    var r = rows[i];
+    recent.push({ studentId: r.studentId, name: r.name, grade: r.grade, classNo: r.classNo, score: r.score, savedAt: r.savedAt });
+  }
+
+  return {
+    entries: rankTop10_(scoped),
+    participants: scoped.length,
+    plays: rows.filter(inScope).length,
+    classStats: classStats,
+    recent: recent
+  };
+}
+
+function handleBoard_(params) {
+  var grade = null, classNo = null;
+  if (params.grade !== undefined && params.grade !== '') {
+    grade = Number(params.grade);
+    if (!isInt_(grade) || grade < GRADE_MIN || grade > GRADE_MAX) return { ok: false, error: 'INVALID_GRADE', message: 'grade는 1~3 사이 정수여야 합니다.' };
+  }
+  if (params.classNo !== undefined && params.classNo !== '') {
+    classNo = Number(params.classNo);
+    if (!isInt_(classNo) || classNo < CLASS_MIN || classNo > CLASS_MAX) return { ok: false, error: 'INVALID_CLASSNO', message: 'classNo는 1~30 사이 정수여야 합니다.' };
+  }
+  var cacheKey = 'bd:' + (grade === null ? '*' : grade) + ':' + (classNo === null ? '*' : classNo);
+  var cached = readLeaderboardCache_(cacheKey);
+  if (cached) return cached;
+
+  var board = computeBoard_(grade, classNo);
+  var result = {
+    ok: true,
+    scope: { grade: grade, classNo: classNo },
+    entries: board.entries,
+    participants: board.participants,
+    plays: board.plays,
+    classStats: board.classStats,
+    recent: board.recent,
+    updatedAt: new Date().toISOString(),
+    revision: getRevision_()
+  };
+  writeLeaderboardCache_(cacheKey, result);
+  return result;
 }
