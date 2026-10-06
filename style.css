@@ -1,91 +1,110 @@
-:root{--ink:#203329;--green:#4a762c;--muted:#768470;--blue:#416de4;--line:#e0e7d8;--paper:#f7f9f2}
+/* Shared design language with the ranking board (board.css): cream dotted paper, thick ink outlines,
+   offset "sticker" shadows, chunky 900-weight type, yellow/blue/red accents. */
+:root{--ink:#1d1d1d;--cream:#fbf3d6;--yellow:#f5c542;--red:#ef5b4c;--blue:#3f7ff0;--muted:#6c675a;--line:3px solid var(--ink);--shadow:5px 6px 0 var(--ink)}
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
-button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}
-button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #a9c3ff;outline-offset:3px}
-button{transition:background .15s,transform .15s}button:active:not(:disabled){transform:translateY(1px)}
+html,body{margin:0;min-height:100%}
+body{background:var(--cream);background-image:radial-gradient(#ead79a 1.5px,transparent 1.6px);background-size:26px 26px;color:var(--ink);font:15px/1.55 'Pretendard','Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-ui,sans-serif;font-weight:700}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
 [hidden]{display:none!important}
-.eyebrow{font-size:10px;letter-spacing:.16em;color:#71944f;font-weight:800}
-.primary{border:0;background:var(--blue);border-radius:10px;padding:12px 25px;color:#fff;font-size:15px;font-weight:750;min-width:160px}
-.primary:hover:not(:disabled){background:#325dd3}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+
+/* ---------- shared pieces ---------- */
+.panel,.entry-card,.game-frame{background:#fff;border:4px solid var(--ink);border-radius:20px;box-shadow:7px 8px 0 var(--ink)}
+.title-pop{margin:0;font-weight:900;letter-spacing:-.02em;line-height:1.05;color:var(--yellow);-webkit-text-stroke:2.5px var(--ink);paint-order:stroke fill;text-shadow:4px 4px 0 var(--ink)}
+.primary,.tool,.chip-link,.bar-button{border:3px solid var(--ink);border-radius:12px;font-weight:900;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:transform .1s,box-shadow .1s,filter .1s;white-space:nowrap}
+.primary{background:var(--blue);color:#fff;font-size:18px;padding:12px 26px;min-width:170px;box-shadow:4px 5px 0 var(--ink)}
+.primary:hover:not(:disabled),.chip-link:hover,.bar-button:hover{transform:translateY(-2px);filter:brightness(1.06)}
+.primary:active:not(:disabled),.chip-link:active,.bar-button:active{transform:translateY(2px);box-shadow:2px 2px 0 var(--ink)}
+.chip-link{background:#fff;color:var(--ink);font-size:14px;padding:6px 14px;box-shadow:3px 4px 0 var(--ink)}
+.chip-link.yellow{background:var(--yellow)}
+.eyebrow{font-size:12px;letter-spacing:.18em;font-weight:900;color:var(--blue)}
+kbd{display:inline-block;min-width:24px;padding:0 6px;margin:0 2px;border:2px solid var(--ink);border-radius:6px;background:#fff;box-shadow:2px 2px 0 var(--ink);font:800 12px/20px 'Pretendard','Apple SD Gothic Neo',system-ui,sans-serif;text-align:center}
 
 /* ---------- entry ---------- */
-.entry-body{min-height:100vh;background:radial-gradient(circle at 20% 15%,#eef6df 0,transparent 45%),radial-gradient(circle at 85% 90%,#e3efd2 0,transparent 40%),var(--paper)}
-.entry{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 18px}
-.entry-card{width:min(420px,100%);background:#fff;border:1px solid var(--line);border-radius:24px;padding:30px 34px 26px;box-shadow:0 20px 50px #334d1914;text-align:center}
-.entry-hero{background:#aad751;background-image:linear-gradient(45deg,#a2d149 25%,transparent 25%,transparent 75%,#a2d149 75%),linear-gradient(45deg,#a2d149 25%,transparent 25%,transparent 75%,#a2d149 75%);background-size:36px 36px;background-position:0 0,18px 18px;border-radius:16px;padding:14px 18px;margin-bottom:20px}
-.hero-snake{width:100%;height:auto;display:block}
-.entry-card h1{margin:4px 0 4px;font-size:30px;letter-spacing:-.04em;color:#36591f}
-.entry-lead{margin:0 0 22px;color:#71806a;font-size:14px}
+.entry{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px 18px}
+.entry-card{width:min(470px,100%);padding:24px 32px 22px;text-align:center}
+.entry-hero{background:#aad751;background-image:linear-gradient(45deg,#a2d149 25%,transparent 25%,transparent 75%,#a2d149 75%),linear-gradient(45deg,#a2d149 25%,transparent 25%,transparent 75%,#a2d149 75%);background-size:36px 36px;background-position:0 0,18px 18px;border:3px solid var(--ink);border-radius:14px;padding:8px 18px;margin-bottom:14px;box-shadow:inset 0 -6px 0 #0000000f}
+.hero-snake{width:100%;height:auto;max-height:92px;display:block;margin:auto}
+.entry-card h1{margin:8px 0 10px;font-size:46px;font-weight:900;letter-spacing:-.02em;line-height:1.05;color:var(--yellow);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;text-shadow:4px 5px 0 var(--ink)}
+.entry-lead{margin:0 0 16px;color:var(--muted);font-size:15px;font-weight:800}
 #entry-form{text-align:left}
-#entry-form label{display:block;font-size:13px;font-weight:750;color:#4d6143;margin:0 0 6px}
-#entry-form input{width:100%;display:block;padding:13px 14px;border:1.5px solid #d6e0cc;border-radius:11px;background:#fcfdf9;color:#253a1d;font-size:17px;font-weight:650;margin-bottom:6px}
-#entry-form input:focus{border-color:#7fa0f0;background:#fff;outline:none;box-shadow:0 0 0 4px #a9c3ff55}
-#student-id{letter-spacing:.12em;font-variant-numeric:tabular-nums}
-.id-preview{margin:0 0 16px;font-size:12px;color:#93a088;min-height:19px}
-.id-preview.ok{color:#3f7a21;font-weight:800;font-size:14px}
-.privacy-note{font-size:11.5px;color:#8d987f;margin:10px 0 6px;line-height:1.6}
-.entry-error{min-height:20px;margin:0 0 6px;font-size:12.5px;color:#b5482f;font-weight:700}
-.entry-submit{width:100%;padding:15px;font-size:16px;border-radius:12px}
-.board-link{display:inline-block;margin-top:18px;font-size:13px;color:#527533;font-weight:700;text-decoration:none}
-.board-link:hover{text-decoration:underline}
-.entry-foot{margin:20px 0 0;font-size:11.5px;color:#98a48b;text-align:center}
+#entry-form label{display:block;font-size:15px;font-weight:900;margin:0 0 6px}
+#entry-form input{width:100%;display:block;padding:13px 15px;border:3px solid var(--ink);border-radius:12px;background:#fffdf4;font-size:19px;font-weight:800;margin-bottom:8px;box-shadow:inset 0 3px 0 #0000000d}
+#entry-form input::placeholder{color:#a9a392;font-weight:700}
+#entry-form input:focus{outline:none;background:#fff;box-shadow:0 0 0 4px var(--yellow)}
+#student-id{letter-spacing:.14em;font-variant-numeric:tabular-nums}
+.id-preview{display:inline-block;margin:0 0 12px;font-size:13px;color:var(--muted);font-weight:800;min-height:20px}
+.id-preview.ok{background:var(--yellow);color:var(--ink);border:2px solid var(--ink);border-radius:999px;padding:2px 12px;font-size:15px;font-weight:900;box-shadow:2px 3px 0 var(--ink)}
+.privacy-note{font-size:12.5px;color:var(--muted);margin:6px 0 4px;font-weight:700}
+.entry-error{min-height:22px;margin:0 0 8px;font-size:14px;color:var(--red);font-weight:900}
+.entry-submit{width:100%;padding:15px;font-size:20px;border-radius:14px}
+.board-link{margin-top:16px;background:var(--yellow);color:var(--ink);border:3px solid var(--ink);border-radius:12px;padding:8px 18px;display:inline-block;font-size:15px;font-weight:900;text-decoration:none;box-shadow:3px 4px 0 var(--ink);transition:transform .1s}
+.board-link:hover{transform:translateY(-2px)}
+.entry-foot{margin:18px 0 0;font-size:13px;color:var(--muted);font-weight:800;text-align:center}
 
 /* ---------- play ---------- */
-.site-header{max-width:1120px;margin:auto;height:76px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--line);gap:12px}
-.brand{text-decoration:none;color:#436b2a;display:flex;align-items:center;gap:10px;font-size:22px;font-weight:500;line-height:1.15;flex-shrink:0}
-.brand strong{font-weight:850}.brand svg{width:38px;height:38px;background:#e8f0dc;border-radius:12px;padding:4px}
-.brand small{display:block;font-size:8px;letter-spacing:.16em;margin-top:6px;color:#7b8b70}
-.header-right{display:flex;align-items:center;gap:8px;min-width:0}
-.student-chip{display:flex;align-items:baseline;gap:8px;background:#e8f0dc;border-radius:20px;padding:6px 14px;min-width:0;white-space:nowrap}
-.student-chip b{color:#36591f;font-size:15px;overflow:hidden;text-overflow:ellipsis}
-.student-chip span{font-size:12px;color:#5f7a4b;font-weight:650}
-.chip-link{border:1px solid #d6dfcc;background:#fff;color:#526947;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap}
-.chip-link:hover{background:#f2f7ea}
-.play-main{max-width:1120px;margin:18px auto 24px;padding:0 24px}
-.game-frame{width:100%;max-width:min(100%,calc((100vh - 250px)*17/15 + 24px));margin:0 auto;border-radius:18px;overflow:hidden;background:#578b36;box-shadow:0 12px 30px #334d1914;outline:none}
+.site-header{max-width:1180px;margin:auto;min-height:86px;display:flex;align-items:center;justify-content:space-between;padding:12px 24px;gap:14px}
+.brand{text-decoration:none;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.brand svg{width:46px;height:46px;background:var(--yellow);color:var(--ink);border:3px solid var(--ink);border-radius:12px;padding:5px;box-shadow:3px 4px 0 var(--ink)}
+.brand span{font-size:30px;font-weight:900;letter-spacing:-.02em;line-height:1;color:var(--yellow);-webkit-text-stroke:2.2px var(--ink);paint-order:stroke fill;text-shadow:3px 3px 0 var(--ink)}
+.brand strong{font-weight:900}
+.brand small{display:block;margin-top:6px;font-size:10px;letter-spacing:.2em;color:var(--blue);-webkit-text-stroke:0;text-shadow:none;font-weight:900}
+.header-right{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap;justify-content:flex-end}
+.student-chip{display:flex;align-items:baseline;gap:8px;background:#fff;border:3px solid var(--ink);border-radius:999px;padding:5px 16px;box-shadow:3px 4px 0 var(--ink);min-width:0;white-space:nowrap}
+.student-chip b{font-size:17px;font-weight:900;overflow:hidden;text-overflow:ellipsis}
+.student-chip span{font-size:13px;color:var(--blue);font-weight:900}
+#board-link{background:var(--yellow)}
+.play-main{max-width:1180px;margin:8px auto 28px;padding:0 24px}
+.game-frame{--fw:min(100%,calc((100vh - 330px)*17/15 + 40px));width:100%;max-width:var(--fw);margin:0 auto;overflow:hidden;outline:none}
 .game-frame:focus,.game-frame:focus-visible{outline:none}
-.game-bar{background:#4a762c;color:#fff;display:flex;gap:22px;align-items:center;height:54px;padding:0 16px 0 22px}
-.score-cell{display:flex;align-items:center;gap:9px;font-size:24px;font-weight:750;min-width:60px}
-.score-cell svg{height:27px;width:26px}
-.best-cell{display:flex;gap:7px;align-items:center}
+.game-bar{display:flex;align-items:center;gap:20px;height:62px;padding:0 14px 0 20px;background:#fff;border-bottom:4px solid var(--ink)}
+.score-cell{display:flex;align-items:center;gap:8px;font-size:30px;font-weight:900;min-width:64px;font-variant-numeric:tabular-nums}
+.score-cell svg{width:28px;height:30px}
+.best-cell{display:flex;align-items:center;gap:6px;background:var(--cream);border:2px solid var(--ink);border-radius:999px;padding:2px 12px 2px 8px}
 .best-cell svg{width:22px;height:22px}
-.best-cell span{font-size:11px;color:#d9eabd}.best-cell b{font-size:19px}
-.game-state{margin-left:auto;font-size:11px;color:#e3edcf}
-.bar-button{border:1px solid #ffffff40;background:#ffffff18;color:#fff;padding:5px 10px;border-radius:8px;font-size:11px;font-weight:650}
-.bar-button:hover{background:#ffffff30}
-.board-wrap{padding:12px;position:relative}
-canvas{width:100%;height:auto;display:block;aspect-ratio:17/15}
-.board-overlay{position:absolute;inset:0;display:grid;place-items:center;background:#1f491523;z-index:1}
-.overlay-card{background:#fafff1f5;border-radius:18px;box-shadow:0 12px 25px #244f2222;padding:28px 34px;text-align:center;min-width:260px;max-width:90%;backdrop-filter:blur(4px)}
-.overlay-kicker{font-size:10px;letter-spacing:.15em;color:#7a9b5b;font-weight:800}
-.overlay-card h2{margin:10px 0;font-size:28px;letter-spacing:-.04em}
-.overlay-card p{font-size:13px;color:#708261;margin:0 0 19px;white-space:pre-line}
-.overlay-card .overlay-foot{font-size:11px;margin:12px 0 0;color:#89a16d}
-.under-game,.key-guide,.game-note{max-width:min(100%,calc((100vh - 250px)*17/15 + 24px));margin-left:auto;margin-right:auto}
-.under-game{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;min-height:26px}
-.under-game p{font-size:13px;color:#6f825e;margin:0}
-.under-game p.error{color:#a65a38}.under-game p.success{color:#3f7a21;font-weight:700}
-.text-button{border:0;background:transparent;text-decoration:underline;text-underline-offset:3px;color:#7c8b70;font-size:12px;padding:0}
-.key-guide{display:flex;justify-content:space-between;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;color:#7d8a73;flex-wrap:wrap}
-kbd{display:inline-block;border:1px solid #dce4d3;border-bottom:2px solid #d0ddc3;background:#fff;border-radius:4px;min-width:18px;text-align:center;padding:0 4px;font:10px/19px monospace;margin:0 2px}
-.game-note{font-size:11px;color:#8b987f;margin-top:8px}
-.game-frame:fullscreen{max-width:none;height:100vh;display:flex;flex-direction:column;align-items:center;background:#f7f9f2;border-radius:0}
-.game-frame:fullscreen .game-bar{width:min(100%,calc((100vh - 54px)*17/15));flex-shrink:0}
-.game-frame:fullscreen .board-wrap{height:calc(100vh - 54px);aspect-ratio:17/15;background:#578b36}
+.best-cell svg path,.best-cell svg rect{stroke:var(--ink);stroke-width:1.2}
+.best-cell span{font-size:12px;color:var(--muted);font-weight:900}
+.best-cell b{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums}
+.game-state{margin-left:auto;font-size:13px;font-weight:900;color:var(--muted)}
+.bar-button{background:#fff;color:var(--ink);font-size:13px;padding:5px 11px;box-shadow:2px 3px 0 var(--ink)}
+.bar-button[aria-pressed="true"]{background:var(--yellow)}
+.board-wrap{position:relative;padding:12px;background:#578b36}
+canvas{width:100%;height:auto;display:block;aspect-ratio:17/15;border-radius:8px}
+.board-overlay{position:absolute;inset:0;display:grid;place-items:center;background:#1d1d1d33;z-index:1}
+.overlay-card{background:#fff;border:4px solid var(--ink);border-radius:20px;box-shadow:7px 8px 0 var(--ink);padding:26px 34px 22px;text-align:center;min-width:280px;max-width:90%}
+.overlay-kicker{display:inline-block;background:var(--red);color:#fff;border:2px solid var(--ink);border-radius:8px;padding:2px 10px;font-size:12px;letter-spacing:.14em;font-weight:900;box-shadow:2px 2px 0 var(--ink)}
+.overlay-card h2{margin:14px 0 8px;font-size:34px;font-weight:900;letter-spacing:-.02em;line-height:1.1}
+.overlay-card p{font-size:15px;color:var(--muted);font-weight:800;margin:0 0 20px;white-space:pre-line}
+.overlay-card .overlay-foot{font-size:12px;margin:14px 0 0;color:var(--muted)}
+.under-game,.key-guide,.game-note{max-width:min(100%,calc((100vh - 330px)*17/15 + 40px));margin-left:auto;margin-right:auto}
+.under-game{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;min-height:30px}
+.under-game p{margin:0;font-size:15px;font-weight:900}
+.under-game p.error{color:var(--red)}
+.under-game p.success{display:inline-block;background:var(--yellow);border:2px solid var(--ink);border-radius:999px;padding:2px 14px;box-shadow:2px 3px 0 var(--ink)}
+.text-button{border:2px solid var(--ink);background:#fff;border-radius:10px;padding:3px 10px;font-size:13px;font-weight:900;box-shadow:2px 2px 0 var(--ink)}
+.key-guide{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;padding:10px 14px;background:#fff;border:3px solid var(--ink);border-radius:14px;box-shadow:3px 4px 0 var(--ink);font-size:13px;font-weight:800}
+.game-note{font-size:13px;color:var(--muted);font-weight:800;margin-top:12px;text-align:center}
+.game-frame:fullscreen{max-width:none;width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--cream);border:0;border-radius:0;box-shadow:none}
+.game-frame:fullscreen .game-bar{width:min(100%,calc((100vh - 66px)*17/15));border:4px solid var(--ink);border-radius:16px 16px 0 0;flex-shrink:0}
+.game-frame:fullscreen .board-wrap{height:calc(100vh - 66px);aspect-ratio:17/15;border:4px solid var(--ink);border-top:0}
 .game-frame:fullscreen canvas{height:100%;width:100%}
 @media(max-width:760px){
-  .site-header{height:auto;padding:12px 16px;flex-wrap:wrap}
+  .site-header{padding:12px 16px}
+  .brand span{font-size:24px}
   .play-main{padding:0 14px}
-  .game-bar{gap:12px;padding:0 10px 0 14px}
-  .game-state{display:none}
-  .best-cell span{display:none}
+  .game-bar{gap:10px;padding:0 10px 0 14px}
+  .game-state,.best-cell span{display:none}
   .board-wrap{padding:8px}
-  .entry-card{padding:24px 22px}
+  .entry-card{padding:24px 20px}
+  .entry-card h1{font-size:38px}
 }
+
+/* ---------- animation hooks used by app.mjs ---------- */
 #score{display:inline-block}#score.pop{animation:scorePop .3s ease-out}
 @keyframes scorePop{0%{transform:scale(1)}40%{transform:scale(1.3)}100%{transform:scale(1)}}
-.board-overlay.enter{background:#10240c66;animation:ovIn .25s ease-out}.board-overlay.enter .overlay-card{animation:cardPop .25s cubic-bezier(.2,1.2,.4,1)}
-@keyframes ovIn{from{background:#10240c00}to{background:#10240c66}}
+.board-overlay.enter{background:#1d1d1d66;animation:ovIn .25s ease-out}.board-overlay.enter .overlay-card{animation:cardPop .25s cubic-bezier(.2,1.2,.4,1)}
+@keyframes ovIn{from{background:#1d1d1d00}to{background:#1d1d1d66}}
 @keyframes cardPop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
-@media(prefers-reduced-motion:reduce){.board-overlay.enter,.board-overlay.enter .overlay-card,#score.pop{animation:none}button{transition:none}.overlay-card{backdrop-filter:none}}
+@media(prefers-reduced-motion:reduce){.board-overlay.enter,.board-overlay.enter .overlay-card,#score.pop{animation:none}button,.board-link{transition:none}}
