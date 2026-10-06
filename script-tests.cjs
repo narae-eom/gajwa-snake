@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+let rows=[];const sheet={getLastRow:()=>rows.length+1,getRange:(r,c,n,w)=>({getValues:()=>rows.slice(r-2,r-2+n).map(row=>row.slice(c-1,c-1+w))})};
+const sandbox={console,Date,JSON,isFinite,PropertiesService:{getScriptProperties:()=>({getProperty:()=>null})},CacheService:{getScriptCache:()=>({get:()=>null,put:()=>{}})}};
+vm.createContext(sandbox);vm.runInContext(fs.readFileSync('Code.gs','utf8'),sandbox);sandbox.getRecordsSheet_=()=>sheet;
+const valid={runId:'11111111-1111-4111-8111-111111111111',studentId:'00101',name:'가상테스트',grade:1,classNo:1,score:1,elapsedMs:2000,ticks:14,endedBy:'collision',version:'1.0.0'};
+assert.equal(sandbox.validateSubmission_(valid).ok,true);assert.equal(sandbox.validateSubmission_(valid).value.studentId,'00101');
+assert.equal(sandbox.validateSubmission_({...valid,endedBy:'aborted'}).ok,false);assert.equal(sandbox.validateSubmission_({...valid,score:252}).ok,false);assert.equal(sandbox.validateSubmission_({...valid,classNo:31}).ok,false);
+assert.equal(sandbox.sanitizeSheetCell_('=IMPORTXML("x")')[0],"'");assert.equal(sandbox.CALLBACK_RE.test('evil;alert(1)'),false);
+rows=[['a','10101','가상A',1,1,10,2000,14,'collision','1.0.0','2026-10-06T00:00:00Z'],['b','10102','가상B',1,1,10,2000,14,'collision','1.0.0','2026-10-06T01:00:00Z'],['c','10101','가상A',1,1,5,2000,14,'collision','1.0.0','2026-10-06T02:00:00Z'],['d','20201','가상C',2,2,9,2000,14,'collision','1.0.0','2026-10-06T03:00:00Z']];
+assert.deepEqual(JSON.parse(JSON.stringify(sandbox.computeLeaderboard_(null,null).map(x=>x.rank))),[1,1,3]);assert.equal(sandbox.computeLeaderboard_(2,2)[0].rank,1);assert.equal(sandbox.personalBest_('10101',1,1),10);console.log('Apps Script: 10 validation/ranking checks passed.');
