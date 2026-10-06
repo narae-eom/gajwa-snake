@@ -6,7 +6,9 @@ if (!profile) location.replace('./');
 
 const game = $('#game'), canvas = $('#board'), ctx = canvas.getContext('2d');
 let state = makeState(), previous = state, queue = [], progress = 1, startedAt = 0, lastFrame = 0;
-let graceUsed = false, best = null, runId = crypto.randomUUID(), audio = null, sound = false;
+let graceUsed = false, best = null, runId = crypto.randomUUID(), audio = null, sound = false, lastSound = '';
+let mouth = 0, mouthAt = 0, mouthSnap = false;
+try { sound = localStorage.getItem('gajwa-snake-sound') === '1'; } catch {}
 // ---------- effects state ----------
 const rmq = window.matchMedia('(prefers-reduced-motion: reduce)');
 const NEVER = -1e9;
@@ -158,24 +160,45 @@ function draw(alpha = progress) {
   }
   const ang = Math.atan2(d.y, d.x);
   ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang); ctx.scale(1 - .2 * Math.abs(sq), 1 + .2 * Math.abs(sq));
-  ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.arc(0, 0, 14.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.arc(0, 0, 14.5 + 1.5 * mouth, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
-  // Mouth opens from 2 cells away, fully open (~74deg) at <=0.6 cell, shut on arrival (chomp).
-  let open = 0;
+  // Mouth: opens (eased) when an apple is within 2 cells straight ahead, snaps shut on eating, then a thin lip relaxes.
+  let want = 0;
   const target = ateStep ? previous.food : state.food;
-  if (target && state.mode === 'running') {
+  if (target && state.mode === 'running' && !(ateStep && now - gulpStart < 250)) {
     const fx = target.x - h.x, fy = target.y - h.y, fwd = fx * d.x + fy * d.y, side = Math.abs(fx * d.y - fy * d.x);
-    if (side < .3 && fwd > .25 && fwd <= 2) open = Math.min(1, (2 - fwd) / 1.4);
+    if (side < .3 && fwd > .15 && fwd <= 2.1) want = 1;
   }
-  if (open > 0) {
-    const half = .65 * open;
+  const mdt = Math.min(100, Math.max(0, now - mouthAt)); mouthAt = now;
+  if (rmq.matches) mouth = want;
+  else if (want > mouth) mouth = Math.min(want, mouth + mdt / 135);
+  else if (want < mouth) mouth = Math.max(want, mouth - mdt / (now - gulpStart < 250 ? 70 : 100));
+  if (dead) mouth = 0;
+  const gs = now - gulpStart;
+  const lip = dead || rmq.matches || gs < 0 || gs > 280 ? 0 : gs < 70 ? gs / 70 : gs < 120 ? 1 : 1 - (gs - 120) / 160;
+  const ease = mouth * mouth * (3 - 2 * mouth), open = ease;
+  if (open > .02 || lip > .02) {
     ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang);
-    ctx.fillStyle = '#1d2f6b'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 16.5, -half, half); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#e8665f'; ctx.beginPath(); ctx.moveTo(2, 0); ctx.arc(0, 0, 11 * open + 2, -half * .55, half * .55); ctx.closePath(); ctx.fill();
+    const rim = '#5a86f2';
+    if (open > .02) {
+      const hinge = 8, W = 4 + 20 * open, H = 14.5 + 6 * open;
+      ctx.fillStyle = rim; ctx.beginPath(); ctx.ellipse(hinge, 0, W, H, 0, -Math.PI / 2, Math.PI / 2); ctx.closePath(); ctx.fill();
+      const t = 3.2 + 1.6 * open, iw = Math.max(0, W - t - 1), ih = Math.max(0, H - t);
+      ctx.fillStyle = '#1f3c99'; ctx.beginPath(); ctx.ellipse(hinge + 1.5, 0, iw, ih, 0, -Math.PI / 2, Math.PI / 2); ctx.closePath(); ctx.fill();
+      if (open > .4) {
+        ctx.fillStyle = '#fff';
+        for (const sg of [-1, 1]) { ctx.beginPath(); ctx.moveTo(hinge + 2, sg * (ih - 1.5)); ctx.lineTo(hinge + 2 + 5 * open, sg * (ih - 1.5)); ctx.lineTo(hinge + 2, sg * (ih - 1.5 - 5 * open)); ctx.closePath(); ctx.fill(); }
+      }
+    }
+    if (lip > .02) {
+      const l = lip * (1 - open);
+      ctx.fillStyle = rim; ctx.beginPath(); ctx.ellipse(11, 0, 1.5 + 4 * l, 14.5 + 3 * l, 0, -Math.PI / 2, Math.PI / 2); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#1f3c99'; ctx.lineWidth = 1.6; ctx.globalAlpha = Math.min(1, l * 1.4); ctx.beginPath(); ctx.moveTo(12.5, -10 * l - 3); ctx.lineTo(12.5, 10 * l + 3); ctx.stroke();
+    }
     ctx.restore();
   }
   for (const side of [-1, 1]) {
-    const ex = hx + d.x * (7 - open * 5) - d.y * side * (8 + open * 2), ey = hy + d.y * (7 - open * 5) + d.x * side * (8 + open * 2);
+    const ex = hx + d.x * (6 - open * 6) - d.y * side * (8 + open * 2), ey = hy + d.y * (6 - open * 6) + d.x * side * (8 + open * 2);
     ctx.fillStyle = '#f9fcff'; ctx.beginPath(); ctx.ellipse(ex, ey, 6.1, 6.7, ang, 0, Math.PI * 2); ctx.fill();
     if (dead) {
       ctx.strokeStyle = '#263b7c'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.beginPath();
@@ -188,18 +211,67 @@ function draw(alpha = progress) {
   if (scoreText !== lastScoreText) { if (lastScoreText !== '' && state.score > Number(lastScoreText)) popScore(); $('#score').textContent = lastScoreText = scoreText; }
   if (stateText !== lastStateText) $('#game-state').textContent = lastStateText = stateText;
 }
+// ---------- sound (synthesized with Web Audio; no external assets) ----------
+let master = null, noiseBuf = null;
+function ensureAudio() {
+  if (!audio) {
+    audio = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = audio.createDynamicsCompressor();
+    master = audio.createGain(); master.gain.value = .55;
+    master.connect(comp); comp.connect(audio.destination);
+    noiseBuf = audio.createBuffer(1, audio.sampleRate, audio.sampleRate);
+    const data = noiseBuf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  }
+  if (audio.state === 'suspended') audio.resume();
+  return audio;
+}
+function env(g, t0, pts) { // pts: [time, value] pairs, exponential between points
+  g.gain.setValueAtTime(.0001, t0);
+  for (const [t, v] of pts) g.gain.exponentialRampToValueAtTime(Math.max(.0001, v), t0 + t);
+}
+function osc(a, type, t0, dur, freqs, pts, dest, gainScale = 1) {
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(freqs[0][1], t0);
+  for (const [t, f] of freqs.slice(1)) o.frequency.exponentialRampToValueAtTime(f, t0 + t);
+  env(g, t0, pts.map(([t, v]) => [t, v * gainScale]));
+  o.connect(g); g.connect(dest); o.start(t0); o.stop(t0 + dur);
+}
+function noise(a, t0, off, dur, type, freq, q, pts, dest) {
+  const n = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  n.buffer = noiseBuf; f.type = type; f.frequency.value = freq; f.Q.value = q;
+  env(g, t0 + off, pts); n.connect(f); f.connect(g); g.connect(dest);
+  n.start(t0 + off, Math.random() * .5); n.stop(t0 + off + dur);
+}
 function tone(type) {
   if (!sound) return;
+  lastSound = type;
   try {
-    audio ??= new (window.AudioContext || window.webkitAudioContext)();
-    audio.resume();
-    const osc = audio.createOscillator(), gain = audio.createGain();
-    osc.connect(gain); gain.connect(audio.destination); osc.type = 'sine';
-    osc.frequency.setValueAtTime(type === 'eat' ? 700 : 170, audio.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(type === 'eat' ? 1000 : 70, audio.currentTime + .12);
-    gain.gain.setValueAtTime(.06, audio.currentTime);
-    gain.gain.exponentialRampToValueAtTime(.001, audio.currentTime + .16);
-    osc.start(); osc.stop(audio.currentTime + .17);
+    const a = ensureAudio(), t0 = a.currentTime + .005, out = master;
+    if (type === 'turn') { // soft low boop 380 -> 300 (40ms) -> 245 (120ms)
+      osc(a, 'sine', t0, .24, [[0, 380], [.04, 300], [.12, 245], [.23, 232]],
+        [[.018, .3], [.06, .37], [.12, .2], [.2, .004], [.23, .0002]], out);
+    } else if (type === 'eat') { // two noise crunches + faint thump
+      noise(a, t0, .055, .1, 'bandpass', 1150, 1.1, [[.012, .55], [.035, .95], [.1, .0005]], out);
+      noise(a, t0, .055, .1, 'bandpass', 4500, .8, [[.012, .25], [.035, .45], [.1, .0005]], out);
+      noise(a, t0, .15, .09, 'bandpass', 750, 1.3, [[.012, .3], [.035, .5], [.08, .0005]], out);
+      osc(a, 'sine', t0 + .05, .1, [[0, 150], [.08, 70]], [[.01, .2], [.09, .001]], out);
+    } else if (type === 'death') { // bonk then buzzy downward sweep
+      noise(a, t0, .04, .06, 'lowpass', 450, .7, [[.008, .6], [.05, .001]], out);
+      osc(a, 'sine', t0 + .04, .14, [[0, 380], [.04, 380], [.045, 300], [.12, 300]], [[.012, .4], [.09, .38], [.12, .02]], out);
+      const lp = a.createBiquadFilter(), sg = a.createGain();
+      lp.type = 'lowpass'; lp.frequency.value = 1100; lp.connect(sg); sg.connect(out);
+      sg.gain.setValueAtTime(.0001, t0 + .2);
+      sg.gain.exponentialRampToValueAtTime(.43, t0 + .23); sg.gain.setValueAtTime(.43, t0 + .35);
+      sg.gain.exponentialRampToValueAtTime(.001, t0 + .6);
+      const sweep = [[.2, 245], [.28, 195], [.36, 156], [.44, 125], [.5, 100], [.56, 80]];
+      for (const [wave, gs] of [['triangle', .8], ['square', .22]]) {
+        const o = a.createOscillator(), g = a.createGain();
+        o.type = wave; g.gain.value = gs; o.frequency.setValueAtTime(sweep[0][1], t0 + .2);
+        for (const [t, f] of sweep.slice(1)) o.frequency.exponentialRampToValueAtTime(f, t0 + t);
+        o.connect(g); g.connect(lp); o.start(t0 + .2); o.stop(t0 + .62);
+      }
+    }
   } catch {}
 }
 
@@ -221,6 +293,7 @@ function begin(direction) {
   state = {...state, mode: 'running'};
   $('#overlay').hidden = true;
   $('#abort').disabled = false;
+  tone('turn');
   startedAt = performance.now();
   lastFrame = startedAt;
   setSave('사과를 먹고 최고 기록을 만들어 보세요.');
@@ -256,12 +329,15 @@ function handleDirection(name) {
   if (!queue.length && !graceUsed && progress < RULES.turnGrace && previous !== state && previous.mode === 'running'
       && equal(state.direction, previous.direction) && !equal(d, state.direction) && allowed(previous.direction, d)) {
     graceUsed = true;
+    tone('turn');
     state = advance(previous, d);
     afterStep();
     draw();
     return;
   }
-  queue = enqueueDirection(queue, state.direction, d);
+  const before = queue, after = enqueueDirection(queue, state.direction, d);
+  queue = after;
+  if (after.length !== before.length || after.at(-1) !== before.at(-1)) tone('turn');
 }
 function frame(now) {
   if (state.mode === 'running') {
@@ -289,7 +365,7 @@ function finish() {
   best = Math.max(best ?? 0, score);
   $('#best').textContent = best;
   $('#abort').disabled = true;
-  tone('end');
+  if (endedBy === 'collision') tone('death');
   submitResult({runId, studentId: profile.studentId, name: profile.name, grade: profile.grade, classNo: profile.classNo, score,
     elapsedMs: Math.round(performance.now() - startedAt), ticks: state.ticks, endedBy, version: RULES.version});
   // Result modal waits for the death/win animation.
@@ -353,12 +429,17 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden && state.mode === 'running') abort('탭을 벗어나 중도 종료했습니다. 기록은 저장하지 않습니다.');
 });
 window.addEventListener('blur', () => { lastFrame = performance.now(); });
-$('#sound').addEventListener('click', () => {
-  sound = !sound;
+function syncSoundButton() {
   $('#sound').textContent = sound ? '소리 켜짐' : '소리 꺼짐';
   $('#sound').setAttribute('aria-pressed', String(sound));
   $('#sound').setAttribute('aria-label', sound ? '소리 끄기' : '소리 켜기');
-  if (sound) tone('eat');
+}
+syncSoundButton();
+$('#sound').addEventListener('click', () => {
+  sound = !sound;
+  try { localStorage.setItem('gajwa-snake-sound', sound ? '1' : '0'); } catch {}
+  syncSoundButton();
+  if (sound) tone('turn');
 });
 $('#fullscreen').addEventListener('click', async () => {
   try {
@@ -433,6 +514,6 @@ refreshMine();
 
 // Read-only runtime metrics for development checks; no personal data exposed.
 window.GAJWA_DEBUG = Object.freeze({
-  getState: () => ({mode: state.mode, score: state.score, ticks: state.ticks, progress, queue: queue.length, head: {...state.snake[0]}, direction: {...state.direction}, overlayVisible, effects: effectCount()}),
+  getState: () => ({mode: state.mode, score: state.score, ticks: state.ticks, progress, queue: queue.length, head: {...state.snake[0]}, direction: {...state.direction}, overlayVisible, effects: effectCount(), lastSound, mouth}),
   getPendingCount: () => pending.size,
 });
