@@ -7,7 +7,7 @@
 <meta name="description" content="가좌중학교 스네이크 게임 입장. 학번과 이름을 입력하세요.">
 <title>가좌 스네이크 · 입장</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20261007-6">
 </head>
 <body class="entry-body">
 <main class="entry">
@@ -27,8 +27,12 @@
       <label for="student-id">학번</label>
       <input id="student-id" name="studentId" required inputmode="numeric" maxlength="5" autocomplete="off" placeholder="예: 10203" aria-describedby="id-preview">
       <p id="id-preview" class="id-preview" aria-live="polite">학번 5자리 = 학년 1자리 + 반 2자리 + 번호 2자리</p>
-      <label for="student-name">이름</label>
-      <input id="student-name" name="name" required maxlength="20" autocomplete="off" placeholder="이름을 입력하세요">
+      <div class="name-label-row">
+        <label for="student-name">이름</label>
+        <button type="button" id="name-mode" class="name-mode-toggle" data-mode="ko" aria-pressed="true" aria-label="영문 입력으로 전환">한글 입력</button>
+      </div>
+      <input id="student-name" name="name" lang="ko" inputmode="text" required maxlength="20" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="이름을 한글로 입력하세요" aria-describedby="name-input-hint">
+      <p id="name-input-hint" class="name-input-hint">기본 한글 입력 · 영문 자판으로 쳐도 한글로 조합돼요.</p>
       <p class="privacy-note">입력한 학번과 이름이 랭킹에 그대로 표시됩니다. 꼭 본인 정보로 입력해 주세요.</p>
       <p id="entry-error" class="entry-error" role="alert"></p>
       <button type="submit" class="primary entry-submit">게임 시작하기</button>
@@ -38,6 +42,6 @@
   <p class="entry-foot">사과 1개 = 1점 · 개인 최고점으로 랭킹이 정해져요 · 중도 종료한 판은 저장되지 않아요</p>
 </main>
 <script src="config.js?v=20261007-2"></script>
-<script type="module" src="entry.mjs?v=20261007-5"></script>
+<script type="module" src="entry.mjs?v=20261007-6"></script>
 </body>
 </html>

@@ -1,7 +1,9 @@
 import {parseStudentId} from './engine.mjs';
 import {$, loadProfile, saveProfile} from './common.mjs';
+import {installKoreanNameInput} from './name-input.mjs?v=20261007-6';
 
 const idInput = $('#student-id'), nameInput = $('#student-name'), preview = $('#id-preview'), error = $('#entry-error');
+installKoreanNameInput(nameInput, $('#name-mode'), $('#name-input-hint'));
 const existing = loadProfile();
 if (existing) {
   idInput.value = existing.studentId;

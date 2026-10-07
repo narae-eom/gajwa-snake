@@ -37,6 +37,11 @@ kbd{display:inline-block;min-width:24px;padding:0 6px;margin:0 2px;border:2px so
 #student-id{letter-spacing:.14em;font-variant-numeric:tabular-nums}
 .id-preview{display:inline-block;margin:0 0 12px;font-size:13px;color:var(--muted);font-weight:800;min-height:20px}
 .id-preview.ok{background:var(--yellow);color:var(--ink);border:2px solid var(--ink);border-radius:999px;padding:2px 12px;font-size:15px;font-weight:900;box-shadow:2px 3px 0 var(--ink)}
+.name-label-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+#entry-form .name-label-row label{margin:0}
+.name-mode-toggle{border:2px solid var(--ink);border-radius:8px;background:var(--yellow);padding:4px 9px;font-size:13px;line-height:1.2;font-weight:900;white-space:nowrap;box-shadow:2px 2px 0 var(--ink)}
+.name-mode-toggle[data-mode="en"]{background:#fff}
+.name-input-hint{margin:0 0 10px;color:var(--muted);font-size:12px;line-height:1.4;font-weight:800}
 .privacy-note{font-size:12.5px;color:var(--muted);margin:6px 0 4px;font-weight:700}
 .entry-error{min-height:22px;margin:0 0 8px;font-size:14px;color:var(--red);font-weight:900}
 .entry-submit{width:100%;padding:15px;font-size:20px;border-radius:14px}
