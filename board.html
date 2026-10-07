@@ -6,15 +6,17 @@
 <meta name="theme-color" content="#fbf3d6">
 <title>가좌 스네이크 실시간 랭킹 보드</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="board.css?v=20261007-3">
+<link rel="stylesheet" href="board.css?v=20261007-4">
 </head>
 <body>
+<nav class="ranking-nav" aria-label="랭킹 화면 이동">
 <div class="tools">
-  <a id="home" class="tool home" href="./" aria-label="홈으로 가기: 게임 입장 화면"><span aria-hidden="true">🏠</span> 홈으로 가기</a>
   <button id="fullscreen" class="tool">전체화면</button>
   <button id="scope-toggle" class="tool" hidden>전체 랭킹</button>
   <button id="change" class="tool" hidden>반 바꾸기</button>
 </div>
+  <a id="home" class="tool home" href="./?v=20261007-4" aria-label="홈으로 가기: 게임 입장 화면"><span aria-hidden="true">🏠</span> 홈으로 가기</a>
+</nav>
 
 <div id="board" class="board" hidden>
   <header class="head">
@@ -46,10 +48,10 @@
   <h2 id="picker-title">어느 랭킹을 띄울까요?</h2>
   <button class="pick pick-all" data-view="all">우리 학교 전체 랭킹</button>
   <div id="picker-grades" class="picker-grades"></div>
-  <a class="picker-back" href="./">← 게임 입장 화면</a>
+  <a class="picker-back" href="./?v=20261007-4"><span aria-hidden="true">🎮</span> 게임 하러 가기</a>
 </section>
 
 <script src="config.js?v=20261007-2"></script>
-<script type="module" src="board.mjs"></script>
+<script type="module" src="board.mjs?v=20261007-4"></script>
 </body>
 </html>

@@ -3,6 +3,11 @@ import {$, cfg, jsonp, classesPerGrade} from './common.mjs';
 
 const POLL_MS = Math.max(2000, Number(cfg.boardPollMs) || 3000);
 const LAST_CLASS_KEY = 'gajwa-board-last-class';
+// Keep all ranking views on the current page version, including reloads and shared links.
+const BOARD_VERSION = '20261007-4';
+const versionedUrl = new URL(location.href);
+versionedUrl.searchParams.set('v', BOARD_VERSION);
+history.replaceState(null, '', versionedUrl);
 const BAR_COLORS = ['#f5c542', '#8f7cf6', '#7fbf4d', '#ef7d5a', '#4fb3e8', '#e86fa8', '#4a762c', '#c98a3c', '#5b6ee1', '#2fb39a'];
 
 let scope = readScope(), timer = null, busy = false, lastData = null, lastOk = 0;
@@ -19,6 +24,7 @@ function writeScope(next) {
   scope = next;
   const url = new URL(location.href);
   url.search = next.type === 'all' ? '?view=all' : '?grade=' + next.grade + '&cls=' + next.classNo;
+  url.searchParams.set('v', BOARD_VERSION);
   history.replaceState(null, '', url);
   if (next.type === 'class') localStorage.setItem(LAST_CLASS_KEY, JSON.stringify({grade: next.grade, classNo: next.classNo}));
 }
