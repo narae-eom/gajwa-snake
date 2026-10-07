@@ -3,6 +3,6 @@ window.GAJWA_CONFIG = Object.freeze({
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbzfeO4Dcs7GG55ki64MPdGf-UyXn73Nf1BIwr6LWq0HFqsfAMOvbyrDiOUeAB3GwmCF/exec",
   pollMs: 5000,
   boardPollMs: 3000,
-  classesPerGrade: {1: 5, 2: 5, 3: 5},
+  classesPerGrade: {1: 4, 2: 5, 3: 5},
   version: "1.1.0"
 });
