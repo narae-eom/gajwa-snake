@@ -36,6 +36,6 @@ $('#entry-form').addEventListener('submit', event => {
     return;
   }
   saveProfile({studentId: parsed.studentId, name});
-  location.href = 'play.html';
+  location.href = 'play.html?v=20261007-5';
 });
 (existing ? nameInput : idInput).focus();

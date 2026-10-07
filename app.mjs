@@ -282,9 +282,20 @@ function reset() {
   state = makeState(); previous = state; progress = 1; queue = []; runId = crypto.randomUUID(); startedAt = 0;
   $('#abort').disabled = true;
   $('#best').textContent = best ?? '-';
-  overlay('READY', '준비됐나요?', '방향키를 누르면 바로 출발합니다.\n벽과 몸을 피해 사과를 먹어 보세요.', '시작하기');
-  $('#overlay-foot').textContent = '방향키 또는 W A S D';
-  setSave('방향키를 눌러 출발하세요.');
+  overlay('READY', '준비됐나요?', 'Enter·스페이스바 또는 시작하기로 게임판을 열어 주세요.\n그다음 방향키를 누르면 출발합니다.', '시작하기');
+  $('#overlay-foot').textContent = 'Enter 또는 스페이스바 · 시작하기 클릭';
+  setSave('Enter 또는 스페이스바로 준비 화면을 닫아 주세요.');
+  draw();
+  game.focus({preventScroll: true});
+}
+// Opening the board is separate from starting a run: no timer or movement until a valid direction.
+function prepareToPlay() {
+  if (state.mode === 'running' || dying) return;
+  if (state.mode !== 'ready') reset();
+  overlayVisible = false;
+  $('#overlay').hidden = true;
+  $('#abort').disabled = true;
+  setSave('방향키 또는 W A S D를 눌러 출발하세요.');
   draw();
   game.focus({preventScroll: true});
 }
@@ -319,7 +330,7 @@ function handleDirection(name) {
   const d = DIRECTIONS[name];
   if (!d || !profile) return;
   if (state.mode === 'ready') {
-    if (allowed(state.direction, d)) begin(d);
+    if (!overlayVisible && allowed(state.direction, d)) begin(d);
     return;
   }
   if (state.mode !== 'running') return;
@@ -381,7 +392,7 @@ function showResultModal() {
   dying = false;
   const win = state.mode === 'win';
   overlay(win ? 'BOARD COMPLETE' : 'GAME OVER', win ? '모든 칸을 채웠어요!' : '이번 기록 ' + state.score + '점', '다시 시작해 나의 최고점에 도전해요.', '다시 시작');
-  $('#overlay-foot').textContent = 'Enter 또는 버튼으로 다시 시작';
+  $('#overlay-foot').textContent = 'Enter·스페이스바 또는 버튼으로 다시 준비';
   const el = $('#overlay'); void el.offsetWidth; el.classList.add('enter');
   draw();
 }
@@ -410,16 +421,13 @@ window.addEventListener('keydown', event => {
   if (event.code === 'Escape' || event.key === 'Escape') {
     event.preventDefault();
     abort();
-  } else if ((event.code === 'Enter' || event.code === 'Space' || event.code === 'NumpadEnter') && !['ready', 'running'].includes(state.mode) && overlayVisible) {
+  } else if (event.code === 'Enter' || event.code === 'Space' || event.code === 'NumpadEnter' || event.key === 'Enter' || event.key === ' ') {
     event.preventDefault();
-    reset();
-  } else if (event.code === 'Space') {
-    event.preventDefault();
+    if (!event.repeat && overlayVisible && state.mode !== 'running' && !dying) prepareToPlay();
   }
 }, {capture: true});
 $('#play').addEventListener('click', () => {
-  if (state.mode === 'ready') begin(DIRECTIONS.right);
-  else if (overlayVisible && state.mode !== 'running') reset();
+  if (overlayVisible && state.mode !== 'running' && !dying) prepareToPlay();
 });
 // Buttons must not keep focus, otherwise Space/Enter would re-trigger them.
 for (const b of document.querySelectorAll('button')) b.addEventListener('mouseup', () => b.blur());
