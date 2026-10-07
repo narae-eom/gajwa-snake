@@ -6,8 +6,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 [hidden]{display:none!important}
 button:focus-visible,a:focus-visible{outline:.3em solid var(--blue);outline-offset:.2em}
 
-.tools{position:fixed;top:calc(var(--u)*1.4);right:calc(var(--u)*1.6);z-index:5;display:flex;gap:calc(var(--u)*.6);background:#fff;border:calc(var(--u)*.3) solid var(--ink);border-radius:calc(var(--u)*1.4);padding:calc(var(--u)*.55);box-shadow:calc(var(--u)*.4) calc(var(--u)*.4) 0 var(--ink)}
+.tools{position:fixed;top:calc(var(--u)*1.4);right:calc(var(--u)*1.6);z-index:5;display:flex;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100% - var(--u)*3.2);gap:calc(var(--u)*.6);background:#fff;border:calc(var(--u)*.3) solid var(--ink);border-radius:calc(var(--u)*1.4);padding:calc(var(--u)*.55);box-shadow:calc(var(--u)*.4) calc(var(--u)*.4) 0 var(--ink)}
 .tool{border:calc(var(--u)*.25) solid var(--ink);background:#fff;border-radius:calc(var(--u)*.9);padding:calc(var(--u)*.45) calc(var(--u)*1.1);font-size:max(11px,calc(var(--u)*1.35));font-weight:900}
+.tool.home{display:inline-flex;align-items:center;gap:.35em;color:inherit;text-decoration:none;background:var(--yellow);white-space:nowrap}
 .tool:hover{background:var(--yellow)}
 
 .board{height:100vh;padding:calc(var(--u)*3) calc(var(--u)*5) calc(var(--u)*1.4);display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;gap:calc(var(--u)*2)}
