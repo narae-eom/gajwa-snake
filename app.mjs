@@ -1,4 +1,4 @@
-import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection} from './engine.mjs?v=20261008-cookie1';
+import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection} from './engine.mjs?v=20261008-worm13';
 import {$, cfg, jsonp, loadProfile, clearProfile, studentLabel} from './common.mjs';
 
 const profile = loadProfile();
@@ -175,53 +175,32 @@ function draw(alpha = progress) {
     sq = p < .4 ? p / .4 : Math.cos((p - .4) / .6 * Math.PI * 1.5) * (1 - (p - .4) / .6);
     hx += cd.x * sq * 12; hy += cd.y * sq * 12;
   }
+  // Rounded worm head. Two large eyes rise above and below the body, as in the supplied capture.
   const ang = Math.atan2(d.y, d.x);
   ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang); ctx.scale(1 - .2 * Math.abs(sq), 1 + .2 * Math.abs(sq));
-  ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.arc(0, 0, 14.5 + 1.5 * mouth, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
-  // Mouth opens for any cookie within 2 cells straight ahead, then closes on eating.
-  let want = 0;
-  const targets = ateStep && state.ateFood ? [state.ateFood, ...state.foods] : state.foods;
-  if (state.mode === 'running' && !(ateStep && now - gulpStart < 250)) {
-    want = targets.some(target => { const fx = target.x - h.x, fy = target.y - h.y;
-      return Math.abs(fx * d.y - fy * d.x) < .3 && fx * d.x + fy * d.y > .15 && fx * d.x + fy * d.y <= 2.1; }) ? 1 : 0;
-  }
-  const mdt = Math.min(100, Math.max(0, now - mouthAt)); mouthAt = now;
-  if (rmq.matches) mouth = want;
-  else if (want > mouth) mouth = Math.min(want, mouth + mdt / 135);
-  else if (want < mouth) mouth = Math.max(want, mouth - mdt / (now - gulpStart < 250 ? 70 : 100));
-  if (dead) mouth = 0;
-  const gs = now - gulpStart;
-  const lip = dead || rmq.matches || gs < 0 || gs > 280 ? 0 : gs < 70 ? gs / 70 : gs < 120 ? 1 : 1 - (gs - 120) / 160;
-  const ease = mouth * mouth * (3 - 2 * mouth), open = ease;
-  if (open > .02 || lip > .02) {
-    ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang);
-    const rim = '#5a86f2';
-    if (open > .02) {
-      const hinge = 8, W = 4 + 20 * open, H = 14.5 + 6 * open;
-      ctx.fillStyle = rim; ctx.beginPath(); ctx.ellipse(hinge, 0, W, H, 0, -Math.PI / 2, Math.PI / 2); ctx.closePath(); ctx.fill();
-      const t = 3.2 + 1.6 * open, iw = Math.max(0, W - t - 1), ih = Math.max(0, H - t);
-      ctx.fillStyle = '#1f3c99'; ctx.beginPath(); ctx.ellipse(hinge + 1.5, 0, iw, ih, 0, -Math.PI / 2, Math.PI / 2); ctx.closePath(); ctx.fill();
-      if (open > .4) {
-        ctx.fillStyle = '#fff';
-        for (const sg of [-1, 1]) { ctx.beginPath(); ctx.moveTo(hinge + 2, sg * (ih - 1.5)); ctx.lineTo(hinge + 2 + 5 * open, sg * (ih - 1.5)); ctx.lineTo(hinge + 2, sg * (ih - 1.5 - 5 * open)); ctx.closePath(); ctx.fill(); }
-      }
-    }
-    if (lip > .02) {
-      const l = lip * (1 - open);
-      ctx.fillStyle = rim; ctx.beginPath(); ctx.ellipse(11, 0, 1.5 + 4 * l, 14.5 + 3 * l, 0, -Math.PI / 2, Math.PI / 2); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = '#1f3c99'; ctx.lineWidth = 1.6; ctx.globalAlpha = Math.min(1, l * 1.4); ctx.beginPath(); ctx.moveTo(12.5, -10 * l - 3); ctx.lineTo(12.5, 10 * l + 3); ctx.stroke();
-    }
-    ctx.restore();
-  }
+  ctx.fillStyle = bodyColor;
+  ctx.beginPath(); ctx.ellipse(2, 0, 16.5, 14.7, 0, 0, Math.PI * 2); ctx.fill();
   for (const side of [-1, 1]) {
-    const ex = hx + d.x * (6 - open * 6) - d.y * side * (8 + open * 2), ey = hy + d.y * (6 - open * 6) + d.x * side * (8 + open * 2);
-    ctx.fillStyle = '#f9fcff'; ctx.beginPath(); ctx.ellipse(ex, ey, 6.1, 6.7, ang, 0, Math.PI * 2); ctx.fill();
+    const eyeY = side * 13.5;
+    // Blue lobes are part of the head rather than eyes pasted on the body.
+    ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.arc(-3.5, eyeY, 11.9, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-2.4, eyeY, 8.6, 0, Math.PI * 2); ctx.fill();
     if (dead) {
-      ctx.strokeStyle = '#263b7c'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.beginPath();
-      ctx.moveTo(ex - 3.4, ey - 3.4); ctx.lineTo(ex + 3.4, ey + 3.4); ctx.moveTo(ex + 3.4, ey - 3.4); ctx.lineTo(ex - 3.4, ey + 3.4); ctx.stroke();
-    } else { ctx.fillStyle = '#263b7c'; ctx.beginPath(); ctx.arc(ex + d.x * 2, ey + d.y * 2, 3.2, 0, Math.PI * 2); ctx.fill(); }
+      ctx.strokeStyle = '#263b7c'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.beginPath();
+      ctx.moveTo(-6.5, eyeY - 4); ctx.lineTo(1.5, eyeY + 4);
+      ctx.moveTo(1.5, eyeY - 4); ctx.lineTo(-6.5, eyeY + 4); ctx.stroke();
+    } else {
+      ctx.fillStyle = '#263b7c'; ctx.beginPath(); ctx.arc(1.7, eyeY + .4, 5.2, 0, Math.PI * 2); ctx.fill();
+    }
   }
+  // Tiny nose and smile keep the reference's clean, friendly face.
+  if (!dead) {
+    ctx.fillStyle = '#344b9d'; ctx.globalAlpha = .65;
+    ctx.beginPath(); ctx.arc(12.2, -5.3, 1.45, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(12.4, 5.3, 2.15, 1.35, -.3, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
   drawParticles(now);
   ctx.restore();
   const scoreText = String(state.score), stateText = statuses[state.mode] || '준비';

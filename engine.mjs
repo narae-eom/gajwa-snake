@@ -1,4 +1,4 @@
-export const RULES = Object.freeze({cols:10,rows:9,tickMs:130,initialLength:4,foodCount:10,version:'1.2.0',inputBuffer:3,turnGrace:.25});
+export const RULES = Object.freeze({cols:10,rows:9,tickMs:100,initialLength:4,foodCount:10,version:'1.2.1',inputBuffer:3,turnGrace:.25});
 export const DIRECTIONS = Object.freeze({up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}});
 export const equal=(a,b)=>!!a&&!!b&&a.x===b.x&&a.y===b.y;
 const INITIAL_FOODS=Object.freeze([{x:1,y:0},{x:5,y:0},{x:3,y:2},{x:7,y:2},{x:5,y:4},{x:9,y:4},{x:3,y:6},{x:7,y:6},{x:1,y:8},{x:5,y:8}]);

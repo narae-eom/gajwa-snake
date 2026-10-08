@@ -3,7 +3,8 @@ import {RULES,makeState,advance,DIRECTIONS,allowed,routeForFrame,pointAt,newFood
 let passed=0;function test(name,fn){fn();passed++;console.log('PASS '+name);}
 const key=p=>p.x+','+p.y;
 const initialFoods=[{x:1,y:0},{x:5,y:0},{x:3,y:2},{x:7,y:2},{x:5,y:4},{x:9,y:4},{x:3,y:6},{x:7,y:6},{x:1,y:8},{x:5,y:8}];
-test('screenshot board and initial snake match contract',()=>{const s=makeState();assert.deepEqual([RULES.cols,RULES.rows,RULES.foodCount,RULES.version,RULES.initialLength],[10,9,10,'1.2.0',4]);assert.deepEqual(s.snake,[{x:3,y:4},{x:2,y:4},{x:1,y:4},{x:0,y:4}]);});
+test('screenshot board and initial snake match contract',()=>{const s=makeState();assert.deepEqual([RULES.cols,RULES.rows,RULES.foodCount,RULES.version,RULES.initialLength],[10,9,10,'1.2.1',4]);assert.deepEqual(s.snake,[{x:3,y:4},{x:2,y:4},{x:1,y:4},{x:0,y:4}]);});
+test('speed is 1.3 times the former 130ms tick',()=>assert.equal(RULES.tickMs,100));
 test('initial ten cookies are unique and match screenshot',()=>{const s=makeState();assert.deepEqual(s.foods,initialFoods);assert.equal(new Set(s.foods.map(key)).size,10);assert.deepEqual(s.food,s.foods[0]);assert.equal(s.ateFood,null);});
 test('consuming a nonfirst cookie scores, grows, and retains other cookies',()=>{const s={...makeState(),foods:[{x:1,y:0},{x:4,y:4},...initialFoods.slice(2)]};const n=advance(s,DIRECTIONS.right,()=>0);assert.equal(n.score,1);assert.equal(n.snake.length,5);assert.deepEqual(n.ateFood,{x:4,y:4});assert.ok(!n.foods.some(p=>p.x===4&&p.y===4));assert.ok(n.foods.some(p=>p.x===1&&p.y===0));assert.equal(n.foods.length,10);assert.deepEqual(n.food,n.foods[0]);});
 test('refills never duplicate or overlap snake or existing cookies',()=>{const s={...makeState(),foods:[{x:4,y:4},...initialFoods.slice(1)]};const n=advance(s,undefined,()=>0);assert.equal(n.foods.length,10);assert.equal(new Set(n.foods.map(key)).size,n.foods.length);assert.ok(n.foods.every(food=>!n.snake.some(part=>key(part)===key(food))));});
