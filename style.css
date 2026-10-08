@@ -116,14 +116,14 @@ canvas{width:100%;height:auto;display:block;aspect-ratio:10/9;border-radius:8px}
 
 /* School crest + cookie-snake identity; never competes with controls. */
 body{isolation:isolate}
-body::before{content:"";position:fixed;inset:0;background:url('gajwa-cookie-logo.webp') no-repeat right -80px center;background-size:min(62vw,760px);opacity:.065;mix-blend-mode:multiply;pointer-events:none;z-index:-1}
+body::before{content:"";position:fixed;inset:0;background:url('gajwa-cookie-logo-v2.webp') center center / cover no-repeat;opacity:.022;mix-blend-mode:multiply;pointer-events:none;z-index:-1}
 .entry-hero{display:flex;align-items:center;justify-content:center;gap:18px;padding:8px 14px}
 .hero-emblem{width:108px;height:108px;object-fit:contain;border:2px solid var(--ink);border-radius:12px;background:var(--cream)}
 .hero-copy{text-align:left;line-height:1.4}
 .hero-copy b{display:block;color:#263b7c;font-size:19px;letter-spacing:.045em;font-weight:900}
 .hero-copy span{display:block;margin-top:6px;font-size:13px;font-weight:900}
 .brand-emblem{width:46px;height:46px;border:3px solid var(--ink);border-radius:12px;background:var(--cream);box-shadow:3px 4px 0 var(--ink)}
-@media(max-width:520px){body::before{background-position:center bottom -65px;background-size:110vw}.entry-hero{gap:10px}.hero-emblem{width:94px;height:94px}.hero-copy b{font-size:17px}.hero-copy span{font-size:12px}}
+@media(max-width:520px){.entry-hero{gap:10px}.hero-emblem{width:94px;height:94px}.hero-copy b{font-size:17px}.hero-copy span{font-size:12px}}
 
 @media(max-width:520px){
  .site-header{flex-direction:column;gap:10px}

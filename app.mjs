@@ -7,7 +7,7 @@ if (!profile) location.replace('./');
 const game = $('#game'), canvas = $('#board'), ctx = canvas.getContext('2d');
 const BOARD_W = RULES.cols * 40, BOARD_H = RULES.rows * 40;
 const schoolEmblem = new Image();
-schoolEmblem.src = new URL('./gajwa-cookie-logo.webp', import.meta.url).href;
+schoolEmblem.src = new URL('./gajwa-cookie-logo-v2.webp', import.meta.url).href;
 schoolEmblem.onload = () => draw();
 let state = makeState(), previous = state, queue = [], progress = 1, startedAt = 0, lastFrame = 0;
 let graceUsed = false, best = null, runId = crypto.randomUUID(), audio = null, sound = false, lastSound = '';
@@ -140,7 +140,7 @@ function draw(alpha = progress) {
     ctx.fillRect(x * 40, y * 40, 41, 41);
   }
   if (schoolEmblem.complete && schoolEmblem.naturalWidth) {
-    const size = BOARD_H * .68; ctx.save(); ctx.globalAlpha = .065; ctx.globalCompositeOperation = 'multiply';
+    const size = BOARD_H * .82; ctx.save(); ctx.globalAlpha = .03; ctx.globalCompositeOperation = 'multiply';
     ctx.drawImage(schoolEmblem, (BOARD_W - size) / 2, (BOARD_H - size) / 2, size, size); ctx.restore();
   }
   const ateStep = state.ate && state.mode === 'running';
