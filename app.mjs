@@ -1,10 +1,14 @@
-import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection} from './engine.mjs';
+import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection} from './engine.mjs?v=20261008-cookie1';
 import {$, cfg, jsonp, loadProfile, clearProfile, studentLabel} from './common.mjs';
 
 const profile = loadProfile();
 if (!profile) location.replace('./');
 
 const game = $('#game'), canvas = $('#board'), ctx = canvas.getContext('2d');
+const BOARD_W = RULES.cols * 40, BOARD_H = RULES.rows * 40;
+const schoolEmblem = new Image();
+schoolEmblem.src = new URL('./gajwa-cookie-logo.webp', import.meta.url).href;
+schoolEmblem.onload = () => draw();
 let state = makeState(), previous = state, queue = [], progress = 1, startedAt = 0, lastFrame = 0;
 let graceUsed = false, best = null, runId = crypto.randomUUID(), audio = null, sound = false, lastSound = '';
 let mouth = 0, mouthAt = 0, mouthSnap = false;
@@ -13,7 +17,7 @@ try { sound = localStorage.getItem('gajwa-snake-sound') === '1'; } catch {}
 const rmq = window.matchMedia('(prefers-reduced-motion: reduce)');
 const NEVER = -1e9;
 let deathStart = NEVER, deathDelay = 0, deathId = 0, dying = false, overlayVisible = true;
-let gulpStart = NEVER, appleBorn = NEVER, eatPending = false;
+let gulpStart = NEVER, cookieBorn = NEVER, newCookie = null, eatPending = false;
 const pool = Array.from({length: 14}, () => ({on: false, k: 0, x: 0, y: 0, vx: 0, vy: 0, a: 0, va: 0, r: 0, vr: 0, born: 0, life: 1, size: 3, color: '#fff', star: false}));
 const pending = new Map(), submitting = new Set();
 const statuses = {ready: '준비', running: '플레이 중', collision: '게임 종료', win: '완주', aborted: '중도 종료'};
@@ -35,8 +39,8 @@ $('#change-profile').addEventListener('click', () => {
 // ---------- drawing ----------
 function resizeCanvas() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = 680 * dpr;
-  canvas.height = 600 * dpr;
+  canvas.width = BOARD_W * dpr;
+  canvas.height = BOARD_H * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   draw();
 }
@@ -56,7 +60,7 @@ function overlay(kicker, title, description, button) {
 function spawn(p) { for (const q of pool) if (!q.on) { Object.assign(q, p, {on: true, born: performance.now()}); return; } }
 function activeParticles() { let n = 0; for (const q of pool) if (q.on) n++; return n; }
 function effectCount(now = performance.now()) {
-  return activeParticles() + (now - gulpStart < 400 ? 1 : 0) + (now - appleBorn < 280 ? 1 : 0) + (dying ? 1 : 0);
+  return activeParticles() + (now - gulpStart < 400 ? 1 : 0) + (now - cookieBorn < 280 ? 1 : 0) + (dying ? 1 : 0);
 }
 function easeOutBack(t) { const c = 1.9, u = t - 1; return 1 + (c + 1) * u * u * u + c * u * u; }
 function popScore() {
@@ -65,12 +69,13 @@ function popScore() {
 }
 function fireEat(now = performance.now()) {
   eatPending = false;
-  gulpStart = now; appleBorn = now;
-  if (rmq.matches || !previous.food) return;
-  const cx = (previous.food.x + .5) * 40, cy = (previous.food.y + .5) * 40;
+  gulpStart = now; cookieBorn = now;
+  newCookie = state.foods.find(food => !previous.foods.some(old => equal(old, food))) || null;
+  if (rmq.matches || !state.ateFood) return;
+  const cx = (state.ateFood.x + .5) * 40, cy = (state.ateFood.y + .5) * 40;
   for (let i = 0; i < 6; i++) {
     const ang = i * Math.PI / 3 + Math.random() * .6, sp = 50 + Math.random() * 50;
-    spawn({k: 1, x: cx, y: cy, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 400, size: 3 + Math.random() * 2, color: i % 2 ? '#ed5144' : '#6fae3a', star: false});
+    spawn({k: 1, x: cx, y: cy, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 400, size: 3 + Math.random() * 2, color: i % 2 ? '#9c5a2a' : '#f5cd86', star: false});
   }
 }
 function spawnDeath(head, cd) {
@@ -100,15 +105,19 @@ function drawParticles(now) {
   }
   ctx.globalAlpha = 1;
 }
-function drawApple(food, scale = 1) {
+function drawCookie(food, scale = 1) {
   if (!food || scale <= 0) return;
   const x = (food.x + .5) * 40, y = (food.y + .5) * 40;
   ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
-  ctx.fillStyle = '#739d3325'; ctx.beginPath(); ctx.ellipse(1, 15, 14, 4, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#ed5144'; ctx.beginPath(); ctx.moveTo(0, -10); ctx.bezierCurveTo(-20, -20, -19, 16, -1, 17); ctx.bezierCurveTo(19, 18, 20, -20, 0, -10); ctx.fill();
-  ctx.fillStyle = '#ff8a7355'; ctx.beginPath(); ctx.ellipse(-6, -4, 3, 6, .3, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#725b28'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(2, -18); ctx.stroke();
-  ctx.fillStyle = '#55872f'; ctx.beginPath(); ctx.ellipse(8, -15, 7, 3, -.4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#685d2525'; ctx.beginPath(); ctx.ellipse(1, 15, 14, 4, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#f1ba60'; ctx.strokeStyle = '#a66c32'; ctx.lineWidth = 1.8; ctx.beginPath();
+  for (let i = 0; i < 24; i++) { const angle = i * Math.PI / 12, r = 15.5 + Math.sin(i * 2.4) * .7; const px = Math.cos(angle) * r, py = Math.sin(angle) * r; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = '#ffe4a2'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(0, 0, 12.5, Math.PI * 1.02, Math.PI * 1.65); ctx.stroke();
+  for (const [cx, cy, r] of [[-6,-6,3.2],[5,-7,3.4],[8,3,3.1],[-3,7,3.4],[-8,2,2.4]]) {
+    ctx.fillStyle = '#68402c'; ctx.beginPath(); ctx.ellipse(cx, cy, r, r * .86, .3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#966447'; ctx.beginPath(); ctx.arc(cx - .8, cy - .8, r * .3, 0, Math.PI * 2); ctx.fill();
+  }
   ctx.restore();
 }
 function strokeRoute(points, width, color) {
@@ -122,19 +131,27 @@ function strokeRoute(points, width, color) {
 let lastScoreText = '', lastStateText = '';
 function draw(alpha = progress) {
   const now = performance.now(), dead = state.mode === 'collision', dt = dead ? now - deathStart : 0;
-  ctx.clearRect(0, 0, 680, 600);
+  ctx.clearRect(0, 0, BOARD_W, BOARD_H);
   ctx.save();
   if (dead && !rmq.matches && dt < 260) { const k = 4 * (1 - dt / 260); ctx.translate(Math.round((Math.random() * 2 - 1) * k), Math.round((Math.random() * 2 - 1) * k)); }
-  ctx.fillStyle = '#a2d149'; ctx.fillRect(-10, -10, 700, 620);
+  ctx.fillStyle = '#a2d149'; ctx.fillRect(-10, -10, BOARD_W + 20, BOARD_H + 20);
   for (let y = 0; y < RULES.rows; y++) for (let x = 0; x < RULES.cols; x++) {
     ctx.fillStyle = (x + y) % 2 ? '#a2d149' : '#aad751';
     ctx.fillRect(x * 40, y * 40, 41, 41);
   }
+  if (schoolEmblem.complete && schoolEmblem.naturalWidth) {
+    const size = BOARD_H * .68; ctx.save(); ctx.globalAlpha = .065; ctx.globalCompositeOperation = 'multiply';
+    ctx.drawImage(schoolEmblem, (BOARD_W - size) / 2, (BOARD_H - size) / 2, size, size); ctx.restore();
+  }
   const ateStep = state.ate && state.mode === 'running';
   if (ateStep && eatPending && alpha >= .7) fireEat(now);
-  if (ateStep && alpha < 1) drawApple(previous.food, alpha < .7 ? 1 : (1 - alpha) / .3);
-  const pop = now - appleBorn;
-  drawApple(state.food, eatPending ? 0 : pop >= 280 ? 1 : Math.max(0, easeOutBack(pop / 280)));
+  if (ateStep && alpha < 1) drawCookie(state.ateFood, alpha < .7 ? 1 : (1 - alpha) / .3);
+  const pop = now - cookieBorn;
+  for (const food of state.foods) {
+    const justAdded = ateStep && !previous.foods.some(old => equal(old, food));
+    const growing = equal(food, newCookie) && pop < 280;
+    drawCookie(food, justAdded && eatPending ? 0 : growing ? Math.max(0, easeOutBack(pop / 280)) : 1);
+  }
   const route = routeForFrame(previous, state, alpha);
   const bodyEnd = Math.max(.05, route.length - .5);
   const blink = dead && !rmq.matches && ((dt > 200 && dt < 320) || (dt > 420 && dt < 540));
@@ -162,12 +179,12 @@ function draw(alpha = progress) {
   ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang); ctx.scale(1 - .2 * Math.abs(sq), 1 + .2 * Math.abs(sq));
   ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.arc(0, 0, 14.5 + 1.5 * mouth, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
-  // Mouth: opens (eased) when an apple is within 2 cells straight ahead, snaps shut on eating, then a thin lip relaxes.
+  // Mouth opens for any cookie within 2 cells straight ahead, then closes on eating.
   let want = 0;
-  const target = ateStep ? previous.food : state.food;
-  if (target && state.mode === 'running' && !(ateStep && now - gulpStart < 250)) {
-    const fx = target.x - h.x, fy = target.y - h.y, fwd = fx * d.x + fy * d.y, side = Math.abs(fx * d.y - fy * d.x);
-    if (side < .3 && fwd > .15 && fwd <= 2.1) want = 1;
+  const targets = ateStep && state.ateFood ? [state.ateFood, ...state.foods] : state.foods;
+  if (state.mode === 'running' && !(ateStep && now - gulpStart < 250)) {
+    want = targets.some(target => { const fx = target.x - h.x, fy = target.y - h.y;
+      return Math.abs(fx * d.y - fy * d.x) < .3 && fx * d.x + fy * d.y > .15 && fx * d.x + fy * d.y <= 2.1; }) ? 1 : 0;
   }
   const mdt = Math.min(100, Math.max(0, now - mouthAt)); mouthAt = now;
   if (rmq.matches) mouth = want;
@@ -277,7 +294,7 @@ function tone(type) {
 
 // ---------- game flow ----------
 function reset() {
-  dying = false; deathStart = NEVER; deathId++; gulpStart = NEVER; appleBorn = NEVER; eatPending = false;
+  dying = false; deathStart = NEVER; deathId++; gulpStart = NEVER; cookieBorn = NEVER; newCookie = null; eatPending = false;
   for (const q of pool) q.on = false;
   state = makeState(); previous = state; progress = 1; queue = []; runId = crypto.randomUUID(); startedAt = 0;
   $('#abort').disabled = true;
@@ -307,7 +324,7 @@ function begin(direction) {
   tone('turn');
   startedAt = performance.now();
   lastFrame = startedAt;
-  setSave('사과를 먹고 최고 기록을 만들어 보세요.');
+  setSave('쿠키를 먹고 최고 기록을 만들어 보세요.');
   queue = [direction];
   step();
 }
@@ -522,6 +539,6 @@ refreshMine();
 
 // Read-only runtime metrics for development checks; no personal data exposed.
 window.GAJWA_DEBUG = Object.freeze({
-  getState: () => ({mode: state.mode, score: state.score, ticks: state.ticks, progress, queue: queue.length, head: {...state.snake[0]}, direction: {...state.direction}, overlayVisible, effects: effectCount(), lastSound, mouth}),
+  getState: () => ({mode: state.mode, score: state.score, ticks: state.ticks, progress, queue: queue.length, head: {...state.snake[0]}, direction: {...state.direction}, cols: RULES.cols, rows: RULES.rows, foodCount: state.foods.length, foods: state.foods.map(p => ({...p})), snakeLength: state.snake.length, overlayVisible, effects: effectCount(), lastSound, mouth}),
   getPendingCount: () => pending.size,
 });

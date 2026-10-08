@@ -62,7 +62,7 @@ kbd{display:inline-block;min-width:24px;padding:0 6px;margin:0 2px;border:2px so
 .student-chip span{font-size:13px;color:var(--blue);font-weight:900}
 #board-link{background:var(--yellow)}
 .play-main{max-width:1180px;margin:8px auto 28px;padding:0 24px}
-.game-frame{--fw:min(100%,calc((100vh - 330px)*17/15 + 40px));width:100%;max-width:var(--fw);margin:0 auto;overflow:hidden;outline:none}
+.game-frame{--fw:min(100%,calc((100vh - 330px)*10/9 + 40px));width:100%;max-width:var(--fw);margin:0 auto;overflow:hidden;outline:none}
 .game-frame:focus,.game-frame:focus-visible{outline:none}
 .game-bar{display:flex;align-items:center;gap:20px;height:62px;padding:0 14px 0 20px;background:#fff;border-bottom:4px solid var(--ink)}
 .score-cell{display:flex;align-items:center;gap:8px;font-size:30px;font-weight:900;min-width:64px;font-variant-numeric:tabular-nums}
@@ -76,14 +76,14 @@ kbd{display:inline-block;min-width:24px;padding:0 6px;margin:0 2px;border:2px so
 .bar-button{background:#fff;color:var(--ink);font-size:13px;padding:5px 11px;box-shadow:2px 3px 0 var(--ink)}
 .bar-button[aria-pressed="true"]{background:var(--yellow)}
 .board-wrap{position:relative;padding:12px;background:#578b36}
-canvas{width:100%;height:auto;display:block;aspect-ratio:17/15;border-radius:8px}
+canvas{width:100%;height:auto;display:block;aspect-ratio:10/9;border-radius:8px}
 .board-overlay{position:absolute;inset:0;display:grid;place-items:center;background:#1d1d1d33;z-index:1}
 .overlay-card{background:#fff;border:4px solid var(--ink);border-radius:20px;box-shadow:7px 8px 0 var(--ink);padding:26px 34px 22px;text-align:center;min-width:280px;max-width:90%}
 .overlay-kicker{display:inline-block;background:var(--red);color:#fff;border:2px solid var(--ink);border-radius:8px;padding:2px 10px;font-size:12px;letter-spacing:.14em;font-weight:900;box-shadow:2px 2px 0 var(--ink)}
 .overlay-card h2{margin:14px 0 8px;font-size:34px;font-weight:900;letter-spacing:-.02em;line-height:1.1}
 .overlay-card p{font-size:15px;color:var(--muted);font-weight:800;margin:0 0 20px;white-space:pre-line}
 .overlay-card .overlay-foot{font-size:12px;margin:14px 0 0;color:var(--muted)}
-.under-game,.key-guide,.game-note{max-width:min(100%,calc((100vh - 330px)*17/15 + 40px));margin-left:auto;margin-right:auto}
+.under-game,.key-guide,.game-note{max-width:min(100%,calc((100vh - 330px)*10/9 + 40px));margin-left:auto;margin-right:auto}
 .under-game{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;min-height:30px}
 .under-game p{margin:0;font-size:15px;font-weight:900}
 .under-game p.error{color:var(--red)}
@@ -92,9 +92,9 @@ canvas{width:100%;height:auto;display:block;aspect-ratio:17/15;border-radius:8px
 .key-guide{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;padding:10px 14px;background:#fff;border:3px solid var(--ink);border-radius:14px;box-shadow:3px 4px 0 var(--ink);font-size:13px;font-weight:800}
 .game-note{font-size:13px;color:var(--muted);font-weight:800;margin-top:12px;text-align:center}
 .game-frame:fullscreen{max-width:none;width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--cream);border:0;border-radius:0;box-shadow:none}
-.game-frame:fullscreen .game-bar{width:min(100%,calc((100vh - 66px)*17/15));border:4px solid var(--ink);border-radius:16px 16px 0 0;flex-shrink:0}
-.game-frame:fullscreen .board-wrap{height:calc(100vh - 66px);aspect-ratio:17/15;border:4px solid var(--ink);border-top:0}
-.game-frame:fullscreen canvas{height:100%;width:100%}
+.game-frame:fullscreen .game-bar{width:min(100%,calc((100vh - 66px)*10/9));border:4px solid var(--ink);border-radius:16px 16px 0 0;flex-shrink:0}
+.game-frame:fullscreen .board-wrap{height:auto;width:min(100vw,calc((100vh - 66px)*10/9));aspect-ratio:auto;border:4px solid var(--ink);border-top:0}
+.game-frame:fullscreen canvas{height:auto;width:100%}
 @media(max-width:760px){
   .site-header{padding:12px 16px}
   .brand span{font-size:24px}
@@ -113,3 +113,26 @@ canvas{width:100%;height:auto;display:block;aspect-ratio:17/15;border-radius:8px
 @keyframes ovIn{from{background:#1d1d1d00}to{background:#1d1d1d66}}
 @keyframes cardPop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){.board-overlay.enter,.board-overlay.enter .overlay-card,#score.pop{animation:none}button,.board-link{transition:none}}
+
+/* School crest + cookie-snake identity; never competes with controls. */
+body{isolation:isolate}
+body::before{content:"";position:fixed;inset:0;background:url('gajwa-cookie-logo.webp') no-repeat right -80px center;background-size:min(62vw,760px);opacity:.065;mix-blend-mode:multiply;pointer-events:none;z-index:-1}
+.entry-hero{display:flex;align-items:center;justify-content:center;gap:18px;padding:8px 14px}
+.hero-emblem{width:108px;height:108px;object-fit:contain;border:2px solid var(--ink);border-radius:12px;background:var(--cream)}
+.hero-copy{text-align:left;line-height:1.4}
+.hero-copy b{display:block;color:#263b7c;font-size:19px;letter-spacing:.045em;font-weight:900}
+.hero-copy span{display:block;margin-top:6px;font-size:13px;font-weight:900}
+.brand-emblem{width:46px;height:46px;border:3px solid var(--ink);border-radius:12px;background:var(--cream);box-shadow:3px 4px 0 var(--ink)}
+@media(max-width:520px){body::before{background-position:center bottom -65px;background-size:110vw}.entry-hero{gap:10px}.hero-emblem{width:94px;height:94px}.hero-copy b{font-size:17px}.hero-copy span{font-size:12px}}
+
+@media(max-width:520px){
+ .site-header{flex-direction:column;gap:10px}
+ .header-right{justify-content:center;width:100%}
+ .student-chip{flex-basis:100%;max-width:100%;justify-content:center;flex-wrap:wrap;white-space:normal}
+ .student-chip b{max-width:100%}
+ .overlay-card{min-width:0;width:calc(100% - 20px);max-width:340px;padding:14px 16px 12px;border-radius:16px;box-shadow:4px 5px 0 var(--ink)}
+ .overlay-card h2{font-size:26px;margin:8px 0 6px}
+ .overlay-card p{font-size:13px;line-height:1.4;margin-bottom:12px}
+ .overlay-card .primary{padding:8px 18px;min-width:150px;font-size:16px}
+ .overlay-card .overlay-foot{font-size:11px;margin:10px 0 0}
+}

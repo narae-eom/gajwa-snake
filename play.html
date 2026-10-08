@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#4a762c">
 <title>가좌 스네이크 · 게임</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20261008-cookie1">
 <script>
   // Without a student profile there is nothing to save; go back to the entry form before rendering.
   try { if (!sessionStorage.getItem('gajwa-snake-profile')) location.replace('./'); } catch { location.replace('./'); }
@@ -15,7 +15,7 @@
 <body class="play-body">
 <header class="site-header">
   <a class="brand" href="./" aria-label="가좌 스네이크 입장 화면">
-    <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M9 29V15Q9 9 16 9H24Q31 9 31 16V23" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="29" cy="20" r="2" fill="#fff"/></svg>
+    <img class="brand-emblem" src="gajwa-cookie-logo.webp" alt="" width="46" height="46">
     <span>가좌 <strong>스네이크</strong><small>GAJWA MIDDLE SCHOOL</small></span>
   </a>
   <div class="header-right">
@@ -27,14 +27,14 @@
 <main class="play-main">
   <div class="game-frame" id="game" tabindex="0" role="group" aria-label="스네이크 게임판. 방향키 또는 WASD로 조작합니다.">
     <div class="game-bar">
-      <div class="score-cell"><svg viewBox="0 0 30 32" aria-label="점수" role="img"><path d="M15 10C2 0 0 26 13 29C27 29 29 1 15 10" fill="#ed5144"/><path d="M15 9L17 2" stroke="#70572d" stroke-width="3"/><ellipse cx="23" cy="5" rx="6" ry="3" fill="#9cce58"/></svg><span id="score">0</span></div>
+      <div class="score-cell"><svg viewBox="0 0 30 32" aria-label="쿠키 점수" role="img"><circle cx="15" cy="16" r="12.5" fill="#f1ba60" stroke="#a66c32" stroke-width="1.5"/><path d="M5 15A10 10 0 0 1 13 6" fill="none" stroke="#ffe4a2" stroke-width="1.5"/><g fill="#68402c"><circle cx="10" cy="10" r="2.5"/><circle cx="20" cy="11" r="2.5"/><circle cx="21" cy="20" r="2.5"/><circle cx="13" cy="23" r="2.5"/><circle cx="8" cy="18" r="2"/></g></svg><span id="score">0</span></div>
       <div class="best-cell"><svg viewBox="0 0 30 30" aria-hidden="true"><path d="M8 4H22V12Q22 19 15 19Q8 19 8 12Z M8 7H3Q3 14 9 14 M22 7H27Q27 14 21 14" fill="#f5c542" stroke="#f5c542" stroke-width="1.5"/><rect x="12" y="19" width="6" height="5" fill="#f5c542"/><rect x="9" y="24" width="12" height="3" rx="1" fill="#f5c542"/></svg><span>내 최고</span><b id="best">-</b></div>
       <span class="game-state" id="game-state">준비</span>
       <button id="sound" class="bar-button" aria-label="소리 켜기" aria-pressed="false">소리 꺼짐</button>
       <button id="fullscreen" class="bar-button" aria-label="게임 전체 화면">전체 화면</button>
     </div>
     <div class="board-wrap">
-      <canvas id="board" width="680" height="600" aria-label="17열 15행 게임판"></canvas>
+      <canvas id="board" width="400" height="360" aria-label="10열 9행 게임판. 쿠키 10개를 먹어 점수를 얻습니다."></canvas>
       <div class="board-overlay" id="overlay">
         <div class="overlay-card">
           <span class="overlay-kicker" id="overlay-kicker">READY</span>
@@ -55,9 +55,9 @@
     <span><kbd>Enter</kbd> / <kbd>Space</kbd> 준비 화면 닫기 · 다시 준비</span>
     <span><kbd>Esc</kbd> 중도 종료 · 저장 안 됨</span>
   </div>
-  <p class="game-note">벽과 몸을 피하고 사과를 먹어 보세요. 다른 탭으로 이동하면 중도 종료되어 저장되지 않습니다.</p>
+  <p class="game-note">10 × 9 작은 판 · 쿠키 10개 동시 배치 · 쿠키 1개 = 1점. 벽과 몸을 피해 보세요. 다른 탭으로 이동하면 중도 종료되어 저장되지 않습니다.</p>
 </main>
-<script src="config.js?v=20261007-2"></script>
-<script type="module" src="app.mjs?v=20261007-5"></script>
+<script src="config.js?v=20261008-cookie1"></script>
+<script type="module" src="app.mjs?v=20261008-cookie1"></script>
 </body>
 </html>
