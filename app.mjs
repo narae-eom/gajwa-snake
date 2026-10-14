@@ -1,6 +1,6 @@
-import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection} from './engine.mjs?v=20261008-quota3';
+import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection} from './engine.mjs?v=20261014-tenmin1';
 import {$, cfg, jsonp, loadProfile, clearProfile, studentLabel} from './common.mjs';
-import {ATTEMPT_LIMIT, attemptKey, quotaStatus, consumeAttempt} from './attempts.mjs?v=20261008-quota3';
+import {ATTEMPT_LIMIT, attemptKey, quotaStatus, consumeAttempt} from './attempts.mjs?v=20261014-tenmin1';
 
 const profile = loadProfile();
 if (!profile) location.replace('./');
@@ -54,7 +54,7 @@ function setSave(text, type = '') {
 function paintAttempts(remaining) {
   const count = remaining === null ? '- / ' + ATTEMPT_LIMIT : remaining + ' / ' + ATTEMPT_LIMIT;
   $('#attempts-count').textContent = count;
-  $('#attempts').setAttribute('aria-label', remaining === null ? '최근 24시간 남은 게임 확인 중' : '최근 24시간 남은 게임 ' + remaining + '회');
+  $('#attempts').setAttribute('aria-label', remaining === null ? '최근 10분 남은 게임 확인 중' : '최근 10분 남은 게임 ' + remaining + '회');
   $('#attempts').querySelectorAll('.attempt-icons svg').forEach((icon, index) => icon.classList.toggle('spent', remaining !== null && index >= remaining));
 }
 function refreshQuota() {
@@ -71,10 +71,10 @@ function refreshQuota() {
 }
 function showQuotaBlocked() {
   const when = quotaResetAt ? new Date(quotaResetAt).toLocaleString('ko-KR', {month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'}) : '';
-  const message = quotaError ? '이 브라우저에서 게임 횟수를 확인할 수 없어 시작할 수 없어요.' : '최근 24시간 3회를 모두 사용했어요.' + (when ? ' ' + when + ' 이후 다시 도전할 수 있어요.' : '');
+  const message = quotaError ? '이 브라우저에서 게임 횟수를 확인할 수 없어 시작할 수 없어요.' : '최근 10분 3회를 모두 사용했어요.' + (when ? ' ' + when + ' 이후 다시 도전할 수 있어요.' : '');
   overlay('3 / 3', '이번 도전은 여기까지!', message, '횟수 모두 사용');
   $('#play').disabled = true;
-  $('#overlay-foot').textContent = '이 브라우저의 학번·이름별 최근 24시간 기준';
+  $('#overlay-foot').textContent = '이 브라우저의 학번·이름별 최근 10분 기준';
   setSave(message);
 }
 async function initializeQuota() {
@@ -441,9 +441,9 @@ function showResultModal() {
   const win = state.mode === 'win';
   refreshQuota();
   const exhausted = quotaError || quotaRemaining === 0;
-  overlay(win ? 'BOARD COMPLETE' : 'GAME OVER', win ? '모든 칸을 채웠어요!' : '이번 기록 ' + state.score + '점', exhausted ? '최근 24시간 3회를 모두 사용했어요. 다음 게임은 횟수가 다시 생기면 시작할 수 있어요.' : '다시 시작해 나의 최고점에 도전해요.', exhausted ? '횟수 모두 사용' : '다시 시작');
+  overlay(win ? 'BOARD COMPLETE' : 'GAME OVER', win ? '모든 칸을 채웠어요!' : '이번 기록 ' + state.score + '점', exhausted ? '최근 10분 3회를 모두 사용했어요. 다음 게임은 횟수가 다시 생기면 시작할 수 있어요.' : '다시 시작해 나의 최고점에 도전해요.', exhausted ? '횟수 모두 사용' : '다시 시작');
   $('#play').disabled = exhausted;
-  $('#overlay-foot').textContent = exhausted ? '이 브라우저의 학번·이름별 최근 24시간 기준' : 'Enter·스페이스바 또는 버튼으로 다시 준비';
+  $('#overlay-foot').textContent = exhausted ? '이 브라우저의 학번·이름별 최근 10분 기준' : 'Enter·스페이스바 또는 버튼으로 다시 준비';
   const el = $('#overlay'); void el.offsetWidth; el.classList.add('enter');
   draw();
 }

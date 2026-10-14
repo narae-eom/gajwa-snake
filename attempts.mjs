@@ -1,5 +1,5 @@
 export const ATTEMPT_LIMIT = 3;
-export const ATTEMPT_WINDOW_MS = 24 * 60 * 60 * 1000;
+export const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const PREFIX = 'gajwa-snake-attempts-v1:';
 const SALT_KEY = 'gajwa-snake-attempts-salt-v1';
 // Browser-local, salted identity hash: never keep student names/IDs in persistent quota keys.

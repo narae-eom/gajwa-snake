@@ -137,7 +137,7 @@ body::before{content:"";position:fixed;inset:0;background:url('gajwa-cookie-logo
  .overlay-card .overlay-foot{font-size:11px;margin:10px 0 0}
 }
 
-/* Three browser-local starts in the rolling 24-hour window. */
+/* Three browser-local starts in the rolling 10-minute window. */
 .attempts{display:flex;align-items:center;gap:5px;white-space:nowrap;background:#fff8df;border:2px solid var(--ink);border-radius:999px;padding:3px 8px;font-size:12px;font-weight:900;min-width:0}
 .attempts-title{font-size:11px;color:var(--muted)}
 .attempt-icons{display:flex;gap:1px;align-items:center}
