@@ -64,7 +64,7 @@ kbd{display:inline-block;min-width:24px;padding:0 6px;margin:0 2px;border:2px so
 .play-main{max-width:1180px;margin:8px auto 28px;padding:0 24px}
 .game-frame{--fw:min(100%,calc((100vh - 330px)*10/9 + 40px));width:100%;max-width:var(--fw);margin:0 auto;overflow:hidden;outline:none}
 .game-frame:focus,.game-frame:focus-visible{outline:none}
-.game-bar{display:flex;align-items:center;gap:20px;height:62px;padding:0 14px 0 20px;background:#fff;border-bottom:4px solid var(--ink)}
+.game-bar{display:flex;align-items:center;gap:10px;height:62px;padding:0 14px 0 20px;background:#fff;border-bottom:4px solid var(--ink)}
 .score-cell{display:flex;align-items:center;gap:8px;font-size:30px;font-weight:900;min-width:64px;font-variant-numeric:tabular-nums}
 .score-cell svg{width:28px;height:30px}
 .best-cell{display:flex;align-items:center;gap:6px;background:var(--cream);border:2px solid var(--ink);border-radius:999px;padding:2px 12px 2px 8px}
@@ -136,3 +136,13 @@ body::before{content:"";position:fixed;inset:0;background:url('gajwa-cookie-logo
  .overlay-card .primary{padding:8px 18px;min-width:150px;font-size:16px}
  .overlay-card .overlay-foot{font-size:11px;margin:10px 0 0}
 }
+
+/* Three browser-local starts in the rolling 24-hour window. */
+.attempts{display:flex;align-items:center;gap:5px;white-space:nowrap;background:#fff8df;border:2px solid var(--ink);border-radius:999px;padding:3px 8px;font-size:12px;font-weight:900;min-width:0}
+.attempts-title{font-size:11px;color:var(--muted)}
+.attempt-icons{display:flex;gap:1px;align-items:center}
+.attempt-icons svg{width:18px;height:19px;flex:none;transition:opacity .2s,filter .2s}
+.attempt-icons svg.spent{opacity:.26;filter:grayscale(1)}
+.attempts b{font-size:13px;font-variant-numeric:tabular-nums}
+@media(max-width:760px){.game-bar{height:auto;min-height:62px;flex-wrap:wrap;justify-content:center;gap:5px 9px;padding:6px 8px}.game-state{display:none}.attempts{order:0}.bar-button{order:1;padding:3px 7px;font-size:12px}.game-frame:fullscreen .board-wrap{width:min(100vw,calc((100vh - 110px)*10/9))}.game-frame:fullscreen .game-bar{width:min(100vw,calc((100vh - 110px)*10/9))}}
+@media(max-width:400px){.attempts-title{display:none}.attempts{padding:2px 5px}.attempt-icons svg{width:16px;height:17px}}

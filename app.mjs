@@ -1,5 +1,6 @@
-import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection} from './engine.mjs?v=20261008-worm13';
+import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection} from './engine.mjs?v=20261008-quota3';
 import {$, cfg, jsonp, loadProfile, clearProfile, studentLabel} from './common.mjs';
+import {ATTEMPT_LIMIT, attemptKey, quotaStatus, consumeAttempt} from './attempts.mjs?v=20261008-quota3';
 
 const profile = loadProfile();
 if (!profile) location.replace('./');
@@ -12,6 +13,7 @@ schoolEmblem.onload = () => draw();
 let state = makeState(), previous = state, queue = [], progress = 1, startedAt = 0, lastFrame = 0;
 let graceUsed = false, best = null, runId = crypto.randomUUID(), audio = null, sound = false, lastSound = '';
 let mouth = 0, mouthAt = 0, mouthSnap = false;
+let quotaKey = null, quotaRemaining = null, quotaResetAt = null, quotaError = false, starting = false, quotaTimer = 0;
 try { sound = localStorage.getItem('gajwa-snake-sound') === '1'; } catch {}
 // ---------- effects state ----------
 const rmq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -48,6 +50,37 @@ function setSave(text, type = '') {
   const el = $('#save-state');
   el.textContent = text;
   el.className = type;
+}
+function paintAttempts(remaining) {
+  const count = remaining === null ? '- / ' + ATTEMPT_LIMIT : remaining + ' / ' + ATTEMPT_LIMIT;
+  $('#attempts-count').textContent = count;
+  $('#attempts').setAttribute('aria-label', remaining === null ? '최근 24시간 남은 게임 확인 중' : '최근 24시간 남은 게임 ' + remaining + '회');
+  $('#attempts').querySelectorAll('.attempt-icons svg').forEach((icon, index) => icon.classList.toggle('spent', remaining !== null && index >= remaining));
+}
+function refreshQuota() {
+  if (!quotaKey || quotaError) return;
+  try {
+    const info = quotaStatus(localStorage, quotaKey);
+    quotaRemaining = info.remaining; quotaResetAt = info.resetAt; paintAttempts(quotaRemaining);
+    clearTimeout(quotaTimer);
+    if (quotaResetAt) quotaTimer = setTimeout(() => {
+      refreshQuota();
+      if (quotaRemaining > 0 && state.mode !== 'running' && !dying && $('#play').disabled) reset();
+    }, Math.max(1000, quotaResetAt - Date.now() + 1000));
+  } catch { quotaError = true; quotaRemaining = 0; paintAttempts(0); }
+}
+function showQuotaBlocked() {
+  const when = quotaResetAt ? new Date(quotaResetAt).toLocaleString('ko-KR', {month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'}) : '';
+  const message = quotaError ? '이 브라우저에서 게임 횟수를 확인할 수 없어 시작할 수 없어요.' : '최근 24시간 3회를 모두 사용했어요.' + (when ? ' ' + when + ' 이후 다시 도전할 수 있어요.' : '');
+  overlay('3 / 3', '이번 도전은 여기까지!', message, '횟수 모두 사용');
+  $('#play').disabled = true;
+  $('#overlay-foot').textContent = '이 브라우저의 학번·이름별 최근 24시간 기준';
+  setSave(message);
+}
+async function initializeQuota() {
+  try { quotaKey = await attemptKey(profile); refreshQuota(); }
+  catch { quotaError = true; quotaRemaining = 0; paintAttempts(0); }
+  if ((quotaError || quotaRemaining === 0) && state.mode === 'ready') showQuotaBlocked();
 }
 function overlay(kicker, title, description, button) {
   $('#overlay').hidden = false; overlayVisible = true;
@@ -278,7 +311,10 @@ function reset() {
   state = makeState(); previous = state; progress = 1; queue = []; runId = crypto.randomUUID(); startedAt = 0;
   $('#abort').disabled = true;
   $('#best').textContent = best ?? '-';
+  refreshQuota();
+  if (quotaError || quotaRemaining === 0) { showQuotaBlocked(); draw(); game.focus({preventScroll:true}); return; }
   overlay('READY', '준비됐나요?', 'Enter·스페이스바 또는 시작하기로 게임판을 열어 주세요.\n그다음 방향키를 누르면 출발합니다.', '시작하기');
+  $('#play').disabled = false;
   $('#overlay-foot').textContent = 'Enter 또는 스페이스바 · 시작하기 클릭';
   setSave('Enter 또는 스페이스바로 준비 화면을 닫아 주세요.');
   draw();
@@ -286,8 +322,11 @@ function reset() {
 }
 // Opening the board is separate from starting a run: no timer or movement until a valid direction.
 function prepareToPlay() {
-  if (state.mode === 'running' || dying) return;
+  if (state.mode === 'running' || dying || starting) return;
+  refreshQuota();
+  if (quotaError || quotaRemaining === 0) { showQuotaBlocked(); return; }
   if (state.mode !== 'ready') reset();
+  if (quotaError || quotaRemaining === 0) return;
   overlayVisible = false;
   $('#overlay').hidden = true;
   $('#abort').disabled = true;
@@ -295,7 +334,20 @@ function prepareToPlay() {
   draw();
   game.focus({preventScroll: true});
 }
-function begin(direction) {
+async function begin(direction) {
+  if (starting || state.mode !== 'ready' || overlayVisible) return;
+  starting = true;
+  try {
+    if (!quotaKey) await initializeQuota();
+    if (quotaError || !quotaKey || state.mode !== 'ready' || overlayVisible) { if (quotaError) showQuotaBlocked(); return; }
+    // Web Locks serialize simultaneous tabs on this browser; the local check is repeated inside the lock.
+    const consume = () => consumeAttempt(localStorage, quotaKey);
+    const result = navigator.locks?.request ? await navigator.locks.request(quotaKey, consume) : consume();
+    quotaRemaining = result.remaining; quotaResetAt = result.resetAt; refreshQuota();
+    if (quotaError) { showQuotaBlocked(); return; }
+    if (!result.allowed) { showQuotaBlocked(); return; }
+  } catch { quotaError = true; quotaRemaining = 0; paintAttempts(0); showQuotaBlocked(); return; }
+  finally { starting = false; }
   overlayVisible = false;
   state = {...state, mode: 'running'};
   $('#overlay').hidden = true;
@@ -387,8 +439,11 @@ function showResultModal() {
   if (!dying) return;
   dying = false;
   const win = state.mode === 'win';
-  overlay(win ? 'BOARD COMPLETE' : 'GAME OVER', win ? '모든 칸을 채웠어요!' : '이번 기록 ' + state.score + '점', '다시 시작해 나의 최고점에 도전해요.', '다시 시작');
-  $('#overlay-foot').textContent = 'Enter·스페이스바 또는 버튼으로 다시 준비';
+  refreshQuota();
+  const exhausted = quotaError || quotaRemaining === 0;
+  overlay(win ? 'BOARD COMPLETE' : 'GAME OVER', win ? '모든 칸을 채웠어요!' : '이번 기록 ' + state.score + '점', exhausted ? '최근 24시간 3회를 모두 사용했어요. 다음 게임은 횟수가 다시 생기면 시작할 수 있어요.' : '다시 시작해 나의 최고점에 도전해요.', exhausted ? '횟수 모두 사용' : '다시 시작');
+  $('#play').disabled = exhausted;
+  $('#overlay-foot').textContent = exhausted ? '이 브라우저의 학번·이름별 최근 24시간 기준' : 'Enter·스페이스바 또는 버튼으로 다시 준비';
   const el = $('#overlay'); void el.offsetWidth; el.classList.add('enter');
   draw();
 }
@@ -396,9 +451,14 @@ function abort(message = '중도 종료했습니다. 이 판의 기록은 저장
   if (!['ready', 'running'].includes(state.mode)) return;
   state = {...state, mode: 'aborted', ate: false}; previous = state; progress = 1; queue = [];
   $('#abort').disabled = true;
-  overlay('NOT SAVED', '다음 도전을 기다려요', '중도 종료한 판은 저장되지 않습니다.', '다시 시작');
-  $('#overlay-foot').textContent = 'Enter 또는 버튼으로 다시 시작';
-  setSave(message);
+  refreshQuota();
+  if (quotaError || quotaRemaining === 0) showQuotaBlocked();
+  else {
+    overlay('NOT SAVED', '다음 도전을 기다려요', '중도 종료한 판은 저장되지 않습니다.', '다시 시작');
+    $('#play').disabled = false;
+    $('#overlay-foot').textContent = 'Enter 또는 버튼으로 다시 시작';
+  }
+  if (!(quotaError || quotaRemaining === 0)) setSave(message);
   draw();
 }
 
@@ -510,9 +570,11 @@ $('#retry-save').addEventListener('click', () => { for (const p of pending.value
 window.addEventListener('online', () => { for (const p of pending.values()) submitResult(p); });
 window.addEventListener('beforeunload', event => { if (pending.size) { event.preventDefault(); event.returnValue = ''; } });
 window.addEventListener('resize', resizeCanvas);
+window.addEventListener('storage', event => { if (event.key === quotaKey) { refreshQuota(); if (quotaRemaining === 0 && state.mode !== 'running' && !dying) showQuotaBlocked(); } });
 
 resizeCanvas();
 reset();
+initializeQuota();
 requestAnimationFrame(frame);
 refreshMine();
 
@@ -520,4 +582,5 @@ refreshMine();
 window.GAJWA_DEBUG = Object.freeze({
   getState: () => ({mode: state.mode, score: state.score, ticks: state.ticks, progress, queue: queue.length, head: {...state.snake[0]}, direction: {...state.direction}, cols: RULES.cols, rows: RULES.rows, foodCount: state.foods.length, foods: state.foods.map(p => ({...p})), snakeLength: state.snake.length, overlayVisible, effects: effectCount(), lastSound, mouth}),
   getPendingCount: () => pending.size,
+  getAttempts: () => ({remaining:quotaRemaining, resetAt:quotaResetAt, ready:!!quotaKey, error:quotaError}),
 });
