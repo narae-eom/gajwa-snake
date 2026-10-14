@@ -146,3 +146,7 @@ body::before{content:"";position:fixed;inset:0;background:url('gajwa-cookie-logo
 .attempts b{font-size:13px;font-variant-numeric:tabular-nums}
 @media(max-width:760px){.game-bar{height:auto;min-height:62px;flex-wrap:wrap;justify-content:center;gap:5px 9px;padding:6px 8px}.game-state{display:none}.attempts{order:0}.bar-button{order:1;padding:3px 7px;font-size:12px}.game-frame:fullscreen .board-wrap{width:min(100vw,calc((100vh - 110px)*10/9))}.game-frame:fullscreen .game-bar{width:min(100vw,calc((100vh - 110px)*10/9))}}
 @media(max-width:400px){.attempts-title{display:none}.attempts{padding:2px 5px}.attempt-icons svg{width:16px;height:17px}}
+
+/* Keep the remaining-cookie badge readable when the board narrows on a tall desktop viewport. */
+.game-bar{container-type:inline-size}
+@container (max-width:700px){.game-state,.attempts-title{display:none}.bar-button{padding:4px 7px;font-size:12px}.game-bar .attempts{flex-shrink:0}}
