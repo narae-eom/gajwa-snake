@@ -92,3 +92,26 @@ button:focus-visible,a:focus-visible{outline:.3em solid var(--blue);outline-offs
   .recent-list{grid-template-columns:repeat(auto-fill,minmax(calc(var(--u)*20),1fr))}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* Bound projector scaling, and let short or narrow screens scroll instead of compressing rankings. */
+:root{--u:clamp(7px,min(1vw,1.4vh),14px)}
+.board{max-width:1600px;margin-inline:auto;min-height:100svh;height:auto}
+.ranking-nav{max-width:calc(100vw - 16px)}
+.tool.home,.picker-back{align-items:center;white-space:nowrap}
+.tool.home span,.picker-back span{display:inline-flex;align-items:center;justify-content:center;flex:none;min-width:1em;line-height:1}
+.body{min-height:calc(var(--u)*38)}
+.top-list,.battle-list{min-width:0}
+.top-row .who,.top-row .name,.battle-row .track{min-width:0}
+.recent-card .line{flex-wrap:wrap}
+.picker{min-height:100svh}
+.picker h2{text-align:center;overflow-wrap:anywhere}
+.picker-row{flex-wrap:wrap}
+@media(min-aspect-ratio:5/4) and (min-height:800px){.board{height:100svh}}
+@media(max-height:799px){.board{height:auto;min-height:100svh;grid-template-rows:auto auto auto auto}.body{min-height:calc(var(--u)*38)}}
+@media(max-aspect-ratio:5/4){:root{--u:clamp(7px,min(1.55vw,1.2vh),10px)}.board{height:auto}.body{min-height:0}}
+@media(max-width:850px){.board{height:auto;grid-template-rows:auto auto auto auto}.body{grid-template-columns:1fr}.top-list,.top-list.many{flex:none;min-height:0;overflow:visible;grid-auto-flow:row;grid-template-columns:1fr;grid-template-rows:none;grid-auto-rows:minmax(calc(var(--u)*5.2),auto)}.battle-list{min-height:calc(var(--u)*30)}.recent{flex-direction:column;align-items:stretch}.recent-list{grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(var(--u)*20)),1fr))}}
+@media(max-width:480px){.ranking-nav{left:8px;right:8px;max-width:none;flex-wrap:wrap;gap:6px}.ranking-nav .tools{order:2;max-width:100%}.ranking-nav .tool.home{order:1;margin-left:auto}.board{padding:clamp(96px,28vw,124px) 12px 16px;gap:14px}.head{gap:6px}.head h1{font-size:clamp(26px,8vw,38px);white-space:normal}.clock-box{margin-top:0;flex-wrap:wrap;gap:4px 12px}.clock-box b{font-size:clamp(20px,7vw,28px)}.clock-box span{font-size:clamp(14px,4vw,18px)}.panel{padding:12px;border-width:3px}.panel h2{font-size:clamp(18px,5vw,22px)}.top-row{grid-template-columns:34px minmax(0,1fr) auto;gap:8px;padding-inline:8px;min-height:48px}.top-row .rank{width:30px;height:30px;font-size:14px}.top-row .name{font-size:clamp(14px,4.4vw,18px)}.top-row .detail{font-size:12px}.top-row .score{font-size:clamp(15px,4.6vw,18px)}.recent-list{grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr))}.picker{padding:80px 14px 20px}.picker h2{font-size:clamp(25px,7vw,38px)}.picker-grade{width:100%;text-align:left}.picker-row{gap:8px}.pick{font-size:clamp(16px,4.5vw,20px);min-width:52px;padding:8px 12px}.pick-all{max-width:100%;white-space:normal}.picker-back{max-width:100%;text-align:center;white-space:normal}}
+
+@media(max-width:480px){.ranking-nav .tools{order:1}.ranking-nav .tool.home{order:2;margin-left:auto}}
+
+@media(max-width:850px){.battle-list{min-height:calc(var(--u)*18)}}

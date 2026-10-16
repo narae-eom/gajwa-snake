@@ -150,3 +150,67 @@ body::before{content:"";position:fixed;inset:0;background:url('gajwa-cookie-logo
 /* Keep the remaining-cookie badge readable when the board narrows on a tall desktop viewport. */
 .game-bar{container-type:inline-size}
 @container (max-width:700px){.game-state,.attempts-title{display:none}.bar-button{padding:4px 7px;font-size:12px}.game-bar .attempts{flex-shrink:0}}
+
+/* Fluid entry and game layout: allow wrapping before text or controls are squeezed. */
+.entry{min-height:100dvh;padding:clamp(12px,2.4vh,24px) clamp(10px,2vw,24px)}
+.entry-card{width:min(470px,100%);padding:clamp(14px,3vw,32px)}
+.entry-card h1{font-size:clamp(30px,6vw,46px)}
+.entry-hero{flex-wrap:wrap;gap:clamp(8px,2vw,18px)}
+.hero-emblem{width:clamp(72px,12vw,108px);height:auto;aspect-ratio:1;flex:none}
+.hero-copy{min-width:0}
+.entry-foot{max-width:1000px;overflow-wrap:anywhere}
+.site-header{width:100%;max-width:1180px;min-height:0;flex-wrap:wrap;padding:clamp(8px,1.4vh,14px) clamp(10px,2vw,24px)}
+.brand{min-width:0}
+.brand span{font-size:clamp(19px,2.6vw,30px);min-width:0;white-space:nowrap}
+.brand-emblem{width:clamp(34px,4vw,46px);height:auto;aspect-ratio:1;flex:none}
+.header-right{min-width:0}
+.student-chip{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.student-chip b{min-width:0}
+.play-main{padding-inline:clamp(8px,2vw,24px);margin-top:clamp(4px,1vh,12px)}
+.game-frame{--fw:min(100%,900px,max(300px,calc((100dvh - 360px)*10/9 + 24px)));max-width:var(--fw);min-width:0}
+.game-bar{height:auto;min-height:62px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px clamp(5px,1vw,10px);padding:7px clamp(6px,1vw,14px);container-type:normal}
+.score-cell,.best-cell,.attempts,.bar-button{flex:0 0 auto;white-space:nowrap;min-width:max-content}
+.score-cell{font-size:clamp(19px,3.4vw,30px);gap:5px}
+.score-cell svg{width:clamp(22px,3vw,28px);height:auto;aspect-ratio:28/30;flex:none}
+.best-cell{gap:clamp(3px,.6vw,6px);padding:3px clamp(6px,1vw,12px)}
+.best-cell svg{width:clamp(18px,2.4vw,22px);height:auto;aspect-ratio:1;flex:none}
+.best-cell span{display:inline;white-space:nowrap;word-break:keep-all;min-width:max-content;font-size:clamp(11px,1.4vw,13px)}
+.best-cell b{flex:none;font-size:clamp(16px,2vw,19px)}
+.attempts{min-width:max-content;padding:3px clamp(5px,.7vw,8px)}
+.attempt-icons{flex:none}
+.attempt-icons svg{width:clamp(15px,2vw,18px);height:auto;aspect-ratio:18/19}
+.attempts b{flex:none;white-space:nowrap}
+.game-state{margin-left:0;white-space:nowrap}
+.bar-button{padding:clamp(3px,.5vw,5px) clamp(6px,.8vw,11px);font-size:clamp(11px,1.4vw,13px)}
+.board-wrap{padding:clamp(5px,1vw,12px)}
+.board-wrap canvas{width:100%;height:auto;aspect-ratio:10/9}
+.overlay-card{width:min(90%,520px);min-width:0;max-width:calc(100% - 12px);max-height:calc(100% - 12px);overflow:auto;overflow-wrap:anywhere;padding:clamp(10px,2.2vw,26px) clamp(10px,2.8vw,34px)}
+.overlay-card h2{font-size:clamp(16px,4vw,34px);margin:clamp(5px,1vw,14px) 0 6px}
+.overlay-card p{font-size:clamp(11px,1.8vw,15px);line-height:1.4;margin-bottom:clamp(8px,1.5vw,20px)}
+.overlay-card .overlay-foot{font-size:clamp(10px,1.4vw,12px);margin:8px 0 0}
+.overlay-card .primary{max-width:100%;min-width:0;font-size:clamp(13px,2vw,18px);padding:clamp(6px,1vw,12px) clamp(10px,2vw,26px)}
+.under-game,.key-guide,.game-note{max-width:var(--fw)}
+.under-game{flex-wrap:wrap;gap:8px;margin-top:clamp(8px,1.5vh,18px)}
+.under-game p{min-width:0;overflow-wrap:anywhere;font-size:clamp(12px,1.7vw,15px)}
+.key-guide{margin-top:clamp(8px,1.2vh,14px);font-size:clamp(11px,1.4vw,13px)}
+.key-guide span{min-width:0;overflow-wrap:anywhere}
+.game-note{font-size:clamp(11px,1.4vw,13px);overflow-wrap:anywhere}
+.game-frame:fullscreen{width:100vw;height:100dvh;overflow:auto;justify-content:flex-start;padding:clamp(4px,1vh,12px)}
+.game-frame:fullscreen .game-bar,.game-frame:fullscreen .board-wrap{width:min(100%,calc((100dvh - 110px)*10/9 + 20px))}
+.game-frame:fullscreen .board-wrap{height:auto;max-height:none;aspect-ratio:auto;border-top:0}
+@media(max-width:760px){.game-bar{gap:5px 7px;padding:6px}.best-cell span{display:inline}.attempts-title{display:none}}
+@media(max-width:520px){.site-header{gap:8px}.header-right{gap:6px}.student-chip{flex-basis:100%}.entry-hero{flex-wrap:nowrap}.hero-copy b{font-size:clamp(14px,4vw,17px)}.hero-copy span{font-size:clamp(10px,3vw,12px)}.game-bar{min-height:0}.key-guide{padding:8px}}
+@media(max-width:340px){.entry-card{padding:12px}.entry-card h1{font-size:29px}.hero-emblem{width:64px}.best-cell span{font-size:10px}.attempt-icons svg{width:14px}.bar-button{font-size:11px;padding:3px 5px}}
+@media(max-height:600px){.site-header{padding-block:6px}.play-main{margin-top:2px}.game-note{margin-top:8px}.key-guide{margin-top:8px}.game-frame{--fw:min(100%,900px,max(300px,calc((100dvh - 300px)*10/9 + 24px)))}}
+
+/* Safe centering never places the first field above a short viewport. */
+.entry{justify-content:safe center}
+.play-main{--fw:min(100%,900px,max(300px,calc((100dvh - 360px)*10/9 + 24px)))}
+@media(max-height:600px){.play-main{--fw:min(100%,900px,max(300px,calc((100dvh - 300px)*10/9 + 24px)))}}
+
+/* Use available height for the board while keeping the guide readable beside it. */
+.key-guide,.game-note{max-width:min(100%,900px)}
+@media(max-height:800px){.entry-card{padding-block:14px}.entry-hero{margin-bottom:8px;padding-block:4px}.hero-emblem{width:clamp(64px,10vw,86px)}.entry-card h1{font-size:clamp(28px,5vw,38px);margin:5px 0}.entry-lead{margin-bottom:8px}#entry-form input{padding:9px 12px;margin-bottom:5px;font-size:17px}.id-preview{margin-bottom:8px}.name-input-hint{margin-bottom:5px}.entry-submit{padding:10px}.board-link{margin-top:10px}.entry-foot{margin-top:10px}}
+@media(max-height:600px){.game-frame,.play-main{--fw:min(100%,900px,max(300px,calc((100dvh - 300px)*10/9 + 24px)))}}
+
+@media(max-width:520px){.game-bar::before{content:"";flex-basis:100%;height:0;order:1}.game-bar .score-cell,.game-bar .best-cell,.game-bar .attempts{order:0}.game-bar .bar-button{order:2}}
