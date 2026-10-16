@@ -1,6 +1,7 @@
-import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection} from './engine.mjs?v=20261014-tenmin1';
+import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection} from './engine.mjs?v=20261016-face1';
 import {$, cfg, jsonp, loadProfile, clearProfile, studentLabel} from './common.mjs';
-import {ATTEMPT_LIMIT, attemptKey, quotaStatus, consumeAttempt} from './attempts.mjs?v=20261014-tenmin1';
+import {ATTEMPT_LIMIT, attemptKey, quotaStatus, consumeAttempt} from './attempts.mjs?v=20261016-face1';
+import {faceMotion} from './face.mjs?v=20261016-face1';
 
 const profile = loadProfile();
 if (!profile) location.replace('./');
@@ -12,7 +13,7 @@ schoolEmblem.src = new URL('./gajwa-cookie-logo-v2.webp', import.meta.url).href;
 schoolEmblem.onload = () => draw();
 let state = makeState(), previous = state, queue = [], progress = 1, startedAt = 0, lastFrame = 0;
 let graceUsed = false, best = null, runId = crypto.randomUUID(), audio = null, sound = false, lastSound = '';
-let mouth = 0, mouthAt = 0, mouthSnap = false;
+let mouth = 0, tongue = 0;
 let quotaKey = null, quotaRemaining = null, quotaResetAt = null, quotaError = false, starting = false, quotaTimer = 0;
 try { sound = localStorage.getItem('gajwa-snake-sound') === '1'; } catch {}
 // ---------- effects state ----------
@@ -208,9 +209,19 @@ function draw(alpha = progress) {
     sq = p < .4 ? p / .4 : Math.cos((p - .4) / .6 * Math.PI * 1.5) * (1 - (p - .4) / .6);
     hx += cd.x * sq * 12; hy += cd.y * sq * 12;
   }
-  // Rounded worm head. Two large eyes rise above and below the body, as in the supplied capture.
+  // The local +x axis points forward, so the mouth and forked tongue follow every turn.
+  const expression = faceMotion({running: state.mode === 'running', eating: ateStep, progress: alpha, now, gulpStart, reducedMotion: rmq.matches});
+  mouth = expression.mouth; tongue = expression.tongue;
   const ang = Math.atan2(d.y, d.x);
   ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang); ctx.scale(1 - .2 * Math.abs(sq), 1 + .2 * Math.abs(sq));
+  if (tongue > .08) {
+    const tip = 19 + tongue * 20;
+    ctx.strokeStyle = '#c8323e'; ctx.lineWidth = 3.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(13, 0); ctx.quadraticCurveTo(tip - 9, -1.5, tip, 0); ctx.stroke();
+    ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tip - 5, 0);
+    ctx.lineTo(tip + 3, -3); ctx.moveTo(tip - 5, 0); ctx.lineTo(tip + 3, 3); ctx.stroke();
+  }
+  // Rounded worm head. Two large eyes rise above and below the body, as in the supplied capture.
   ctx.fillStyle = bodyColor;
   ctx.beginPath(); ctx.ellipse(2, 0, 16.5, 14.7, 0, 0, Math.PI * 2); ctx.fill();
   for (const side of [-1, 1]) {
@@ -226,11 +237,23 @@ function draw(alpha = progress) {
       ctx.fillStyle = '#263b7c'; ctx.beginPath(); ctx.arc(1.7, eyeY + .4, 5.2, 0, Math.PI * 2); ctx.fill();
     }
   }
-  // Tiny nose and smile keep the reference's clean, friendly face.
   if (!dead) {
+    if (mouth > .08) {
+      // A blue lower lip, dark mouth and two small teeth make the bite readable at game speed.
+      ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.ellipse(15, 0, 8.8 + mouth * 5.5, 4.5 + mouth * 9, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#233777'; ctx.beginPath(); ctx.ellipse(16, 0, 7.3 + mouth * 5, 2.8 + mouth * 8, 0, 0, Math.PI * 2); ctx.fill();
+      const toothY = 3 + mouth * 5;
+      ctx.fillStyle = '#fff';
+      for (const side of [-1, 1]) {
+        ctx.beginPath(); ctx.moveTo(12, side * toothY); ctx.lineTo(16.3, side * (toothY + .2)); ctx.lineTo(14.5, side * (toothY - 4)); ctx.closePath(); ctx.fill();
+      }
+    } else {
+      ctx.strokeStyle = '#344b9d'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(16, -2.8); ctx.quadraticCurveTo(18, 0, 16, 2.8); ctx.stroke();
+    }
     ctx.fillStyle = '#344b9d'; ctx.globalAlpha = .65;
-    ctx.beginPath(); ctx.arc(12.2, -5.3, 1.45, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(12.4, 5.3, 2.15, 1.35, -.3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(11.5, -5.7, 1.35, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(11.5, 5.7, 1.35, 0, Math.PI * 2); ctx.fill();
     ctx.globalAlpha = 1;
   }
   ctx.restore();
@@ -580,7 +603,7 @@ refreshMine();
 
 // Read-only runtime metrics for development checks; no personal data exposed.
 window.GAJWA_DEBUG = Object.freeze({
-  getState: () => ({mode: state.mode, score: state.score, ticks: state.ticks, progress, queue: queue.length, head: {...state.snake[0]}, direction: {...state.direction}, cols: RULES.cols, rows: RULES.rows, foodCount: state.foods.length, foods: state.foods.map(p => ({...p})), snakeLength: state.snake.length, overlayVisible, effects: effectCount(), lastSound, mouth}),
+  getState: () => ({mode: state.mode, score: state.score, ticks: state.ticks, progress, queue: queue.length, head: {...state.snake[0]}, direction: {...state.direction}, cols: RULES.cols, rows: RULES.rows, foodCount: state.foods.length, foods: state.foods.map(p => ({...p})), snakeLength: state.snake.length, overlayVisible, effects: effectCount(), lastSound, mouth, tongue}),
   getPendingCount: () => pending.size,
   getAttempts: () => ({remaining:quotaRemaining, resetAt:quotaResetAt, ready:!!quotaKey, error:quotaError}),
 });
