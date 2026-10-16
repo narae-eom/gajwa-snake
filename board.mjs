@@ -4,7 +4,7 @@ import {$, cfg, jsonp, classesPerGrade} from './common.mjs';
 const POLL_MS = Math.max(2000, Number(cfg.boardPollMs) || 3000);
 const LAST_CLASS_KEY = 'gajwa-board-last-class';
 // Keep all ranking views on the current page version, including reloads and shared links.
-const BOARD_VERSION = '20261016-responsive1';
+const BOARD_VERSION = '20261016-responsive2';
 const versionedUrl = new URL(location.href);
 versionedUrl.searchParams.set('v', BOARD_VERSION);
 history.replaceState(null, '', versionedUrl);

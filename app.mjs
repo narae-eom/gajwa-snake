@@ -29,7 +29,7 @@ const statuses = {ready: '준비', running: '플레이 중', collision: '게임 
 if (profile) {
   $('#profile-name').textContent = profile.name;
   $('#profile-detail').textContent = studentLabel(profile);
-  $('#board-link').href = 'board.html?grade=' + profile.grade + '&cls=' + profile.classNo + '&v=20261016-responsive1';
+  $('#board-link').href = 'board.html?grade=' + profile.grade + '&cls=' + profile.classNo + '&v=20261016-responsive2';
 }
 $('#change-profile').addEventListener('click', () => {
   if (state.mode === 'running' && !confirm('학생을 바꾸면 현재 판은 저장되지 않고 종료됩니다. 계속할까요?')) return;
