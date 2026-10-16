@@ -38,6 +38,6 @@ $('#entry-form').addEventListener('submit', event => {
     return;
   }
   saveProfile({studentId: parsed.studentId, name});
-  location.href = 'play.html?v=20261016-face1';
+  location.href = 'play.html?v=20261016-face2';
 });
 (existing ? nameInput : idInput).focus();

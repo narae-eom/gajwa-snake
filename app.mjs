@@ -240,12 +240,12 @@ function draw(alpha = progress) {
   if (!dead) {
     if (mouth > .08) {
       // A blue lower lip, dark mouth and two small teeth make the bite readable at game speed.
-      ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.ellipse(15, 0, 8.8 + mouth * 5.5, 4.5 + mouth * 9, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#233777'; ctx.beginPath(); ctx.ellipse(16, 0, 7.3 + mouth * 5, 2.8 + mouth * 8, 0, 0, Math.PI * 2); ctx.fill();
-      const toothY = 3 + mouth * 5;
+      ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.ellipse(17, 0, 9 + mouth * 8, 5 + mouth * 17, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#233777'; ctx.beginPath(); ctx.ellipse(18, 0, 8 + mouth * 7, 3 + mouth * 15, 0, 0, Math.PI * 2); ctx.fill();
+      const toothY = 4 + mouth * 11;
       ctx.fillStyle = '#fff';
       for (const side of [-1, 1]) {
-        ctx.beginPath(); ctx.moveTo(12, side * toothY); ctx.lineTo(16.3, side * (toothY + .2)); ctx.lineTo(14.5, side * (toothY - 4)); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(14, side * toothY); ctx.lineTo(20, side * (toothY + .3)); ctx.lineTo(17, side * (toothY - 6)); ctx.closePath(); ctx.fill();
       }
     } else {
       ctx.strokeStyle = '#344b9d'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
