@@ -4,7 +4,7 @@ import {$, cfg, jsonp, classesPerGrade} from './common.mjs';
 const POLL_MS = Math.max(2000, Number(cfg.boardPollMs) || 3000);
 const LAST_CLASS_KEY = 'gajwa-board-last-class';
 // Keep all ranking views on the current page version, including reloads and shared links.
-const BOARD_VERSION = '20261016-responsive2';
+const BOARD_VERSION = '20261109-grade6-large';
 const versionedUrl = new URL(location.href);
 versionedUrl.searchParams.set('v', BOARD_VERSION);
 history.replaceState(null, '', versionedUrl);
@@ -17,7 +17,7 @@ function readScope() {
   const q = new URLSearchParams(location.search);
   if (q.get('view') === 'all') return {type: 'all'};
   const grade = Number(q.get('grade')), classNo = Number(q.get('cls') || q.get('class'));
-  if ([1, 2, 3].includes(grade) && Number.isInteger(classNo) && classNo >= 1 && classNo <= 30) return {type: 'class', grade, classNo};
+  if ([1, 2, 3, 4, 5, 6].includes(grade) && Number.isInteger(classNo) && classNo >= 1 && classNo <= 10) return {type: 'class', grade, classNo};
   return null;
 }
 function writeScope(next) {
@@ -31,7 +31,7 @@ function writeScope(next) {
 function lastClass() {
   try {
     const v = JSON.parse(localStorage.getItem(LAST_CLASS_KEY) || 'null');
-    if (v && [1, 2, 3].includes(v.grade) && v.classNo >= 1) return {type: 'class', grade: v.grade, classNo: v.classNo};
+    if (v && [1, 2, 3, 4, 5, 6].includes(v.grade) && v.classNo >= 1 && v.classNo <= 10) return {type: 'class', grade: v.grade, classNo: v.classNo};
   } catch {}
   return null;
 }
@@ -80,7 +80,7 @@ function showPicker() {
 function buildPicker(stats) {
   const classes = classesPerGrade(stats), wrap = $('#picker-grades');
   wrap.replaceChildren();
-  for (const grade of [1, 2, 3]) {
+  for (const grade of [1, 2, 3, 4, 5, 6]) {
     if (!classes[grade].length) continue;
     const row = el('div', 'picker-row');
     row.append(el('span', 'picker-grade', grade + '학년'));

@@ -67,12 +67,12 @@ export function jsonp(action, params = {}, timeoutMs = 15000) {
 }
 
 export function classesPerGrade(stats = []) {
-  const base = cfg.classesPerGrade || {1: 5, 2: 5, 3: 5};
+  const base = cfg.classesPerGrade || {1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10};
   const result = {};
-  for (const grade of [1, 2, 3]) {
+  for (const grade of [1, 2, 3, 4, 5, 6]) {
     const set = new Set();
     for (let c = 1; c <= Number(base[grade] || 0); c++) set.add(c);
-    for (const s of stats) if (Number(s.grade) === grade) set.add(Number(s.classNo));
+    for (const s of stats) if (Number(s.grade) === grade && Number(s.classNo) >= 1 && Number(s.classNo) <= 10) set.add(Number(s.classNo));
     result[grade] = [...set].sort((a, b) => a - b);
   }
   return result;

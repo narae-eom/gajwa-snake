@@ -20,4 +20,4 @@ export function directionFromKey(code,key){return KEY_TO_DIRECTION[code]||KEY_FA
 // Buffer quick successive turns (e.g. up then left inside one tick) instead of dropping them.
 export function enqueueDirection(queue,current,next,max=RULES.inputBuffer){if(!next||queue.length>=max)return queue;const last=queue.length?queue[queue.length-1]:current;if(equal(last,next)||!allowed(last,next))return queue;return [...queue,next];}
 // 5-digit school ID: grade(1) + class(2) + number(2), e.g. 10203 = 1학년 2반 3번.
-export function parseStudentId(value){const id=String(value??'').trim();if(!/^[1-3][0-9]{4}$/.test(id))return null;const grade=Number(id[0]),classNo=Number(id.slice(1,3)),number=Number(id.slice(3));if(classNo<1||classNo>30||number<1)return null;return {studentId:id,grade,classNo,number};}
+export function parseStudentId(value){const id=String(value??'').trim();if(!/^[1-6][0-9]{4}$/.test(id))return null;const grade=Number(id[0]),classNo=Number(id.slice(1,3)),number=Number(id.slice(3));if(classNo<1||classNo>10||number<1||number>99)return null;return {studentId:id,grade,classNo,number};}

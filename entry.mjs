@@ -15,8 +15,8 @@ function updatePreview() {
   const parsed = parseStudentId(idInput.value);
   preview.classList.toggle('ok', !!parsed);
   if (parsed) preview.textContent = parsed.grade + '학년 ' + parsed.classNo + '반 ' + parsed.number + '번';
-  else if (idInput.value.length === 5) preview.textContent = '학번을 다시 확인해 주세요. 예: 10203 = 1학년 2반 3번';
-  else preview.textContent = '학번 5자리 = 학년 1자리 + 반 2자리 + 번호 2자리';
+  else if (idInput.value.length === 5) preview.textContent = '학번을 다시 확인해 주세요. 학년 1~6 · 반 01~10 · 번호 01~99';
+  else preview.textContent = '학번 5자리 = 학년(1~6) + 반(01~10) + 번호(01~99)';
   error.textContent = '';
 }
 idInput.addEventListener('input', updatePreview);
@@ -28,7 +28,7 @@ $('#entry-form').addEventListener('submit', event => {
   const parsed = parseStudentId(idInput.value);
   const name = nameInput.value.trim().normalize('NFC');
   if (!parsed) {
-    error.textContent = '학번 5자리를 정확히 입력해 주세요. 예: 10203';
+    error.textContent = '학번을 확인해 주세요. 학년 1~6 · 반 01~10 · 번호 01~99';
     idInput.focus();
     return;
   }
@@ -38,6 +38,6 @@ $('#entry-form').addEventListener('submit', event => {
     return;
   }
   saveProfile({studentId: parsed.studentId, name});
-  location.href = 'play.html?v=20261016-responsive2';
+  location.href = 'play.html?v=20261109-grade6-large';
 });
 (existing ? nameInput : idInput).focus({preventScroll:true});

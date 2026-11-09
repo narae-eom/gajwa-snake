@@ -28,7 +28,7 @@
  * 그렇지 않으면 콜백을 실행하지 않고 에러만 반환합니다(스크립트 삽입 방지).
  *
  * --- action=leaderboard ---
- *   파라미터: grade(선택, 1~3), classNo(선택, 1~30) - 둘 다 주면 해당 반만, 둘 다 없으면 전교
+ *   파라미터: grade(선택, 1~6), classNo(선택, 1~10) - 둘 다 주면 해당 반만, 둘 다 없으면 전교
  *   성공 응답:
  *     {
  *       ok: true,
@@ -61,8 +61,8 @@
  *       runId: "<crypto.randomUUID() 형식의 UUID v4>",
  *       studentId: "학번 문자열 (앞자리 0 보존)",
  *       name: "이름",
- *       grade: 1|2|3,
- *       classNo: 1~30,
+ *       grade: 1~6,
+ *       classNo: 1~10,
  *       score: 0~251 정수,
  *       elapsedMs: 정수(ms),
  *       ticks: 정수,
@@ -111,8 +111,8 @@ var CACHE_TTL_MS = 3000; // 리더보드 읽기 캐시 최대 3초
 var LOCK_WAIT_MS = 10000;
 
 var SCORE_MIN = 0, SCORE_MAX = 251;
-var GRADE_MIN = 1, GRADE_MAX = 3;
-var CLASS_MIN = 1, CLASS_MAX = 30;
+var GRADE_MIN = 1, GRADE_MAX = 6;
+var CLASS_MIN = 1, CLASS_MAX = 10;
 var ELAPSED_MS_MAX = 1000 * 60 * 60; // 1시간 상한 (여유있게)
 var TICKS_MAX = 1000000; // 넉넉한 상한
 var VALID_ENDED_BY = ['collision', 'win'];
@@ -273,13 +273,13 @@ function handleLeaderboard_(params) {
   if (gradeRaw !== undefined && gradeRaw !== null && gradeRaw !== '') {
     grade = Number(gradeRaw);
     if (!isInt_(grade) || grade < GRADE_MIN || grade > GRADE_MAX) {
-      return { ok: false, error: 'INVALID_GRADE', message: 'grade는 1~3 사이 정수여야 합니다.' };
+      return { ok: false, error: 'INVALID_GRADE', message: 'grade는 1~6 사이 정수여야 합니다.' };
     }
   }
   if (classNoRaw !== undefined && classNoRaw !== null && classNoRaw !== '') {
     classNo = Number(classNoRaw);
     if (!isInt_(classNo) || classNo < CLASS_MIN || classNo > CLASS_MAX) {
-      return { ok: false, error: 'INVALID_CLASSNO', message: 'classNo는 1~30 사이 정수여야 합니다.' };
+      return { ok: false, error: 'INVALID_CLASSNO', message: 'classNo는 1~10 사이 정수여야 합니다.' };
     }
   }
 
@@ -544,7 +544,7 @@ function validateSubmission_(data) {
   var studentId = String(data.studentId).trim();
   var parsedId = parseStudentId_(studentId);
   if (!parsedId) {
-    return { ok: false, error: 'INVALID_STUDENT_ID', message: 'studentId는 5자리 학번(학년1+반2+번호2, 예: 10203)이어야 합니다.' };
+    return { ok: false, error: 'INVALID_STUDENT_ID', message: 'studentId는 5자리 학번(학년 1~6, 반 01~10, 번호 01~99)이어야 합니다.' };
   }
 
   // name: 문자열, NFC 정규화, 길이 제한, 공백만 금지
@@ -707,14 +707,14 @@ function rebuildTop10Sheet_() {
 }
 
 // ============================================================================
-// 학번 해석 (5자리: 학년1 + 반2 + 번호2, 예: 10203 = 1학년 2반 3번)
+// 학번 해석 (5자리: 학년 1~6 + 반 01~10 + 번호 01~99)
 // ============================================================================
 
 function parseStudentId_(id) {
   var s = String(id == null ? '' : id).trim();
-  if (!/^[1-3][0-9]{4}$/.test(s)) return null;
+  if (!/^[1-6][0-9]{4}$/.test(s)) return null;
   var grade = Number(s.charAt(0)), classNo = Number(s.substr(1, 2)), number = Number(s.substr(3, 2));
-  if (classNo < CLASS_MIN || classNo > CLASS_MAX || number < 1) return null;
+  if (classNo < CLASS_MIN || classNo > CLASS_MAX || number < 1 || number > 99) return null;
   return { grade: grade, classNo: classNo, number: number };
 }
 
@@ -795,11 +795,11 @@ function handleBoard_(params) {
   var grade = null, classNo = null;
   if (params.grade !== undefined && params.grade !== '') {
     grade = Number(params.grade);
-    if (!isInt_(grade) || grade < GRADE_MIN || grade > GRADE_MAX) return { ok: false, error: 'INVALID_GRADE', message: 'grade는 1~3 사이 정수여야 합니다.' };
+    if (!isInt_(grade) || grade < GRADE_MIN || grade > GRADE_MAX) return { ok: false, error: 'INVALID_GRADE', message: 'grade는 1~6 사이 정수여야 합니다.' };
   }
   if (params.classNo !== undefined && params.classNo !== '') {
     classNo = Number(params.classNo);
-    if (!isInt_(classNo) || classNo < CLASS_MIN || classNo > CLASS_MAX) return { ok: false, error: 'INVALID_CLASSNO', message: 'classNo는 1~30 사이 정수여야 합니다.' };
+    if (!isInt_(classNo) || classNo < CLASS_MIN || classNo > CLASS_MAX) return { ok: false, error: 'INVALID_CLASSNO', message: 'classNo는 1~10 사이 정수여야 합니다.' };
   }
   var cacheKey = 'bd:' + (grade === null ? '*' : grade) + ':' + (classNo === null ? '*' : classNo);
   var cached = readLeaderboardCache_(cacheKey);
