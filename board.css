@@ -115,3 +115,5 @@ button:focus-visible,a:focus-visible{outline:.3em solid var(--blue);outline-offs
 @media(max-width:480px){.ranking-nav .tools{order:1}.ranking-nav .tool.home{order:2;margin-left:auto}}
 
 @media(max-width:850px){.battle-list{min-height:calc(var(--u)*18)}}
+
+.mode-tool[data-game-mode=EASY].active{background:#dff4ff;color:#245d89}.mode-tool[data-game-mode=HARD].active{background:var(--yellow)}.mode-tool[aria-pressed=true]{box-shadow:inset 0 0 0 calc(var(--u)*.18) var(--ink)}

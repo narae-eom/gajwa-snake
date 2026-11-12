@@ -1,4 +1,4 @@
-import {parseStudentId} from './engine.mjs';
+import {parseStudentId, normalizeGameMode} from './engine.mjs';
 
 export const cfg = window.GAJWA_CONFIG || {};
 export const $ = selector => document.querySelector(selector);
@@ -10,14 +10,14 @@ export function loadProfile() {
     const raw = JSON.parse(sessionStorage.getItem(PROFILE_KEY) || 'null');
     const parsed = raw && parseStudentId(raw.studentId);
     if (!parsed || typeof raw.name !== 'string' || !raw.name.trim()) return null;
-    return {...parsed, name: raw.name.trim().normalize('NFC').slice(0, 20)};
+    return {...parsed, name: raw.name.trim().normalize('NFC').slice(0, 20), gameMode: normalizeGameMode(raw.gameMode)};
   } catch {
     return null;
   }
 }
 
 export function saveProfile(profile) {
-  sessionStorage.setItem(PROFILE_KEY, JSON.stringify({studentId: profile.studentId, name: profile.name}));
+  sessionStorage.setItem(PROFILE_KEY, JSON.stringify({studentId: profile.studentId, name: profile.name, gameMode: normalizeGameMode(profile.gameMode)}));
 }
 
 export function clearProfile() {

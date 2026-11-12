@@ -4,5 +4,5 @@ window.GAJWA_CONFIG = Object.freeze({
   pollMs: 5000,
   boardPollMs: 3000,
   classesPerGrade: {1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10},
-  version: "1.3.0"
+  version: "1.4.0"
 });

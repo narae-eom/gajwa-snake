@@ -1,17 +1,18 @@
-import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection} from './engine.mjs?v=20261016-face1';
+import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection, normalizeGameMode, rulesForMode} from './engine.mjs?v=20261112-modes1';
 import {$, cfg, jsonp, loadProfile, clearProfile, studentLabel} from './common.mjs';
-import {ATTEMPT_LIMIT, attemptKey, quotaStatus, consumeAttempt} from './attempts.mjs?v=20261016-face1';
-import {faceMotion} from './face.mjs?v=20261016-face1';
+import {ATTEMPT_LIMIT, attemptKey, quotaStatus, consumeAttempt} from './attempts.mjs?v=20261112-modes1';
+import {faceMotion} from './face.mjs?v=20261112-modes1';
 
 const profile = loadProfile();
 if (!profile) location.replace('./');
 
+const gameMode = normalizeGameMode(profile?.gameMode), activeRules = rulesForMode(gameMode);
 const game = $('#game'), canvas = $('#board'), ctx = canvas.getContext('2d');
 const BOARD_W = RULES.cols * 40, BOARD_H = RULES.rows * 40;
 const schoolEmblem = new Image();
 schoolEmblem.src = new URL('./gajwa-cookie-logo-v2.webp', import.meta.url).href;
 schoolEmblem.onload = () => draw();
-let state = makeState(), previous = state, queue = [], progress = 1, startedAt = 0, lastFrame = 0;
+let state = makeState(gameMode), previous = state, queue = [], progress = 1, startedAt = 0, lastFrame = 0;
 let graceUsed = false, best = null, runId = crypto.randomUUID(), audio = null, sound = false, lastSound = '';
 let mouth = 0, tongue = 0;
 let quotaKey = null, quotaRemaining = null, quotaResetAt = null, quotaError = false, starting = false, quotaTimer = 0;
@@ -28,8 +29,13 @@ const statuses = {ready: '준비', running: '플레이 중', collision: '게임 
 // ---------- header ----------
 if (profile) {
   $('#profile-name').textContent = profile.name;
-  $('#profile-detail').textContent = studentLabel(profile);
-  $('#board-link').href = 'board.html?grade=' + profile.grade + '&cls=' + profile.classNo + '&v=20261109-grade6-large';
+  $('#profile-detail').textContent = studentLabel(profile) + ' · ' + gameMode;
+  $('#board-link').href = 'board.html?grade=' + profile.grade + '&cls=' + profile.classNo + '&gameMode=' + gameMode + '&v=20261112-modes1';
+  document.body.dataset.gameMode = gameMode;
+  game.dataset.gameMode = gameMode;
+  game.setAttribute('aria-label', gameMode + ' 스네이크 게임판. 방향키 또는 WASD로 조작합니다.');
+  canvas.setAttribute('aria-label', '10열 9행 ' + gameMode + ' 게임판. 쿠키 ' + activeRules.foodCount + '개가 동시에 나타납니다.');
+  $('#game-note').textContent = gameMode + ' 모드 · ' + (gameMode === 'EASY' ? '기존의 70% 속도(143ms/칸) · 쿠키 7개' : '기존 속도(100ms/칸) · 쿠키 10개') + ' · 최근 10분 동일 학번·이름으로 두 모드 합계 3판까지 시작 가능 · 쿠키 1개 = 1점. 다른 탭으로 이동하면 저장되지 않습니다.';
 }
 $('#change-profile').addEventListener('click', () => {
   if (state.mode === 'running' && !confirm('학생을 바꾸면 현재 판은 저장되지 않고 종료됩니다. 계속할까요?')) return;
@@ -331,12 +337,12 @@ function tone(type) {
 function reset() {
   dying = false; deathStart = NEVER; deathId++; gulpStart = NEVER; cookieBorn = NEVER; newCookie = null; eatPending = false;
   for (const q of pool) q.on = false;
-  state = makeState(); previous = state; progress = 1; queue = []; runId = crypto.randomUUID(); startedAt = 0;
+  state = makeState(gameMode); previous = state; progress = 1; queue = []; runId = crypto.randomUUID(); startedAt = 0;
   $('#abort').disabled = true;
   $('#best').textContent = best ?? '-';
   refreshQuota();
   if (quotaError || quotaRemaining === 0) { showQuotaBlocked(); draw(); game.focus({preventScroll:true}); return; }
-  overlay('READY', '준비됐나요?', 'Enter·스페이스바 또는 시작하기로 게임판을 열어 주세요.\n그다음 방향키를 누르면 출발합니다.', '시작하기');
+  overlay(gameMode + ' MODE', gameMode + ' 준비됐나요?', (gameMode === 'EASY' ? '천천히 움직이고 쿠키는 7개만 나타나요.\n' : '기존 속도와 쿠키 10개로 도전해요.\n') + '방향키를 누르면 출발합니다.', '시작하기');
   $('#play').disabled = false;
   $('#overlay-foot').textContent = 'Enter 또는 스페이스바 · 시작하기 클릭';
   setSave('Enter 또는 스페이스바로 준비 화면을 닫아 주세요.');
@@ -428,7 +434,7 @@ function frame(now) {
     if (delta > 900) {
       abort('화면이 오래 멈춰 현재 판을 중도 종료했어요. 기록은 저장하지 않습니다.');
     } else {
-      progress += delta / RULES.tickMs;
+      progress += delta / activeRules.tickMs;
       while (progress >= 1 && state.mode === 'running') {
         const rest = progress - 1;
         step();
@@ -449,7 +455,7 @@ function finish() {
   $('#abort').disabled = true;
   if (endedBy === 'collision') tone('death');
   submitResult({runId, studentId: profile.studentId, name: profile.name, grade: profile.grade, classNo: profile.classNo, score,
-    elapsedMs: Math.round(performance.now() - startedAt), ticks: state.ticks, endedBy, version: RULES.version});
+    elapsedMs: Math.round(performance.now() - startedAt), ticks: state.ticks, endedBy, version: activeRules.version, gameMode});
   // Result modal waits for the death/win animation.
   dying = true; deathStart = performance.now(); eatPending = false;
   deathDelay = rmq.matches ? 350 : endedBy === 'win' ? 500 : 1000;
@@ -580,7 +586,7 @@ async function submitResult(payload) {
 async function refreshMine(showRank = false) {
   if (!profile) return;
   try {
-    const result = await jsonp('leaderboard', {grade: profile.grade, classNo: profile.classNo, studentId: profile.studentId, studentGrade: profile.grade, studentClass: profile.classNo});
+    const result = await jsonp('leaderboard', {grade: profile.grade, classNo: profile.classNo, gameMode, studentId: profile.studentId, studentGrade: profile.grade, studentClass: profile.classNo});
     if (result.personalBest !== undefined) {
       best = Math.max(best ?? 0, Number(result.personalBest));
       if (best > 0 || state.mode !== 'ready') $('#best').textContent = best;
@@ -603,7 +609,7 @@ refreshMine();
 
 // Read-only runtime metrics for development checks; no personal data exposed.
 window.GAJWA_DEBUG = Object.freeze({
-  getState: () => ({mode: state.mode, score: state.score, ticks: state.ticks, progress, queue: queue.length, head: {...state.snake[0]}, direction: {...state.direction}, cols: RULES.cols, rows: RULES.rows, foodCount: state.foods.length, foods: state.foods.map(p => ({...p})), snakeLength: state.snake.length, overlayVisible, effects: effectCount(), lastSound, mouth, tongue}),
+  getState: () => ({mode: state.mode, gameMode, tickMs: activeRules.tickMs, targetFoodCount: activeRules.foodCount, score: state.score, ticks: state.ticks, progress, queue: queue.length, head: {...state.snake[0]}, direction: {...state.direction}, cols: RULES.cols, rows: RULES.rows, foodCount: state.foods.length, foods: state.foods.map(p => ({...p})), snakeLength: state.snake.length, overlayVisible, effects: effectCount(), lastSound, mouth, tongue}),
   getPendingCount: () => pending.size,
   getAttempts: () => ({remaining:quotaRemaining, resetAt:quotaResetAt, ready:!!quotaKey, error:quotaError}),
 });

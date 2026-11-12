@@ -1,12 +1,14 @@
-import {parseStudentId} from './engine.mjs';
+import {parseStudentId, normalizeGameMode} from './engine.mjs';
 import {$, cfg, jsonp, classesPerGrade} from './common.mjs';
 
 const POLL_MS = Math.max(2000, Number(cfg.boardPollMs) || 3000);
 const LAST_CLASS_KEY = 'gajwa-board-last-class';
 // Keep all ranking views on the current page version, including reloads and shared links.
-const BOARD_VERSION = '20261109-grade6-large';
+const BOARD_VERSION = '20261112-modes1';
+let gameMode = normalizeGameMode(new URLSearchParams(location.search).get('gameMode'));
 const versionedUrl = new URL(location.href);
 versionedUrl.searchParams.set('v', BOARD_VERSION);
+versionedUrl.searchParams.set('gameMode', gameMode);
 history.replaceState(null, '', versionedUrl);
 const BAR_COLORS = ['#f5c542', '#8f7cf6', '#7fbf4d', '#ef7d5a', '#4fb3e8', '#e86fa8', '#4a762c', '#c98a3c', '#5b6ee1', '#2fb39a'];
 
@@ -24,6 +26,7 @@ function writeScope(next) {
   scope = next;
   const url = new URL(location.href);
   url.search = next.type === 'all' ? '?view=all' : '?grade=' + next.grade + '&cls=' + next.classNo;
+  url.searchParams.set('gameMode', gameMode);
   url.searchParams.set('v', BOARD_VERSION);
   history.replaceState(null, '', url);
   if (next.type === 'class') localStorage.setItem(LAST_CLASS_KEY, JSON.stringify({grade: next.grade, classNo: next.classNo}));
@@ -45,6 +48,21 @@ const fmt = n => Number(n).toLocaleString('ko-KR', {maximumFractionDigits: 1});
 const numberOf = r => { const p = parseStudentId(r.studentId); return p && p.grade === Number(r.grade) && p.classNo === Number(r.classNo) ? p.number : null; };
 const hms = d => [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2, '0')).join(':');
 
+function syncModeButtons(){
+  for (const button of document.querySelectorAll('[data-game-mode]')) {
+    const active = button.dataset.gameMode === gameMode;
+    button.setAttribute('aria-pressed', String(active));
+    button.classList.toggle('active', active);
+  }
+}
+function setGameMode(next){
+  const normalized = normalizeGameMode(next);
+  if (normalized === gameMode) return;
+  gameMode = normalized; lastData = null; previousTop = new Map(); previousRecent = new Set(); firstRender = true;
+  const url = new URL(location.href); url.searchParams.set('gameMode', gameMode); url.searchParams.set('v', BOARD_VERSION); history.replaceState(null, '', url);
+  if (scope) showBoard(); else showPicker();
+}
+
 // ---------- views ----------
 function showBoard() {
   $('#picker').hidden = true;
@@ -53,8 +71,9 @@ function showBoard() {
   $('#change').hidden = false;
   $('#change').textContent = '반 바꾸기';
   const isClass = scope.type === 'class';
-  $('#title').textContent = isClass ? scope.grade + '학년 ' + scope.classNo + '반 실시간 랭킹' : '우리 학교 실시간 랭킹';
-  $('#top-title').textContent = isClass ? scope.classNo + '반 TOP 10' : '전교 TOP 10';
+  $('#title').textContent = gameMode + ' · ' + (isClass ? scope.grade + '학년 ' + scope.classNo + '반 실시간 랭킹' : '우리 학교 실시간 랭킹');
+  $('#top-title').textContent = gameMode + ' ' + (isClass ? scope.classNo + '반 TOP 10' : '전교 TOP 10');
+  syncModeButtons();
   $('#scope-toggle').textContent = isClass ? '전체 랭킹' : '반 랭킹';
   document.title = $('#title').textContent + ' · 가좌 스네이크';
   previousTop = new Map(); previousRecent = new Set(); firstRender = true;
@@ -66,6 +85,7 @@ function showBoard() {
 }
 function sameScope(s) {
   if (!s || !scope) return false;
+  if (normalizeGameMode(s.gameMode) !== gameMode) return false;
   return scope.type === 'all' ? s.grade == null && s.classNo == null : s.grade === scope.grade && s.classNo === scope.classNo;
 }
 function showPicker() {
@@ -74,8 +94,9 @@ function showPicker() {
   $('#scope-toggle').hidden = true;
   $('#change').hidden = !scope;
   $('#change').textContent = '돌아가기';
+  syncModeButtons();
   buildPicker(lastData?.classStats || []);
-  if (!lastData) jsonp('board', {}).then(data => { lastData = data; buildPicker(data.classStats || []); }).catch(() => {});
+  if (!lastData) jsonp('board', {gameMode}).then(data => { lastData = data; buildPicker(data.classStats || []); }).catch(() => {});
 }
 function buildPicker(stats) {
   const classes = classesPerGrade(stats), wrap = $('#picker-grades');
@@ -194,7 +215,7 @@ async function poll(force = false) {
   busy = true;
   const asked = scope;
   try {
-    const params = asked.type === 'class' ? {grade: asked.grade, classNo: asked.classNo} : {};
+    const params = asked.type === 'class' ? {grade: asked.grade, classNo: asked.classNo, gameMode} : {gameMode};
     const data = await jsonp('board', params, 12000);
     if (asked === scope) {
       lastData = data;
@@ -239,6 +260,8 @@ $('#change').addEventListener('click', () => {
   else showPicker();
 });
 document.querySelector('.pick-all').addEventListener('click', () => { writeScope({type: 'all'}); showBoard(); });
+for (const button of document.querySelectorAll('[data-game-mode]')) button.addEventListener('click', () => setGameMode(button.dataset.gameMode));
+syncModeButtons();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(true); });
 
 tickClock();

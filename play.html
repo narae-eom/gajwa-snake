@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#4a762c">
 <title>가좌 스네이크 · 게임</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=20261109-grade6-large">
+<link rel="stylesheet" href="style.css?v=20261112-modes1">
 <script>
   // Without a student profile there is nothing to save; go back to the entry form before rendering.
   try { if (!sessionStorage.getItem('gajwa-snake-profile')) location.replace('./'); } catch { location.replace('./'); }
@@ -20,7 +20,7 @@
   </a>
   <div class="header-right">
     <div class="student-chip"><b id="profile-name">-</b><span id="profile-detail"></span></div>
-    <a class="chip-link" id="board-link" href="board.html?v=20261109-grade6-large" target="_blank" rel="noopener">랭킹 보드</a>
+    <a class="chip-link" id="board-link" href="board.html?v=20261112-modes1" target="_blank" rel="noopener">랭킹 보드</a>
     <button id="change-profile" class="chip-link">학생 변경</button>
   </div>
 </header>
@@ -56,9 +56,9 @@
     <span><kbd>Enter</kbd> / <kbd>Space</kbd> 준비 화면 닫기 · 다시 준비</span>
     <span><kbd>Esc</kbd> 중도 종료 · 저장 안 됨</span>
   </div>
-  <p class="game-note">이 브라우저에서 최근 10분 동일 학번·이름으로 3판까지 시작 가능 · 쿠키 1개 = 1점. 벽과 몸을 피해 보세요. 다른 탭으로 이동하면 중도 종료되어 저장되지 않습니다.</p>
+  <p class="game-note" id="game-note">이 브라우저에서 최근 10분 동일 학번·이름으로 3판까지 시작 가능 · 쿠키 1개 = 1점. 벽과 몸을 피해 보세요. 다른 탭으로 이동하면 중도 종료되어 저장되지 않습니다.</p>
 </main>
-<script src="config.js?v=20261109-grade6-large"></script>
-<script type="module" src="app.mjs?v=20261109-grade6-large"></script>
+<script src="config.js?v=20261112-modes1"></script>
+<script type="module" src="app.mjs?v=20261112-modes1"></script>
 </body>
 </html>

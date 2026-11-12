@@ -100,7 +100,7 @@
 
 var SHEET_NAME = '게임기록';
 var TOP10_SHEET_NAME = 'TOP10';
-var HEADER = ['runId', 'studentId', 'name', 'grade', 'classNo', 'score', 'elapsedMs', 'ticks', 'endedBy', 'version', 'savedAt'];
+var HEADER = ['runId', 'studentId', 'name', 'grade', 'classNo', 'score', 'elapsedMs', 'ticks', 'endedBy', 'version', 'savedAt', 'gameMode'];
 
 var PROP_REVISION = 'LEADERBOARD_REVISION';
 var PROP_CACHE_AT = 'LEADERBOARD_CACHE_AT';
@@ -116,6 +116,7 @@ var CLASS_MIN = 1, CLASS_MAX = 10;
 var ELAPSED_MS_MAX = 1000 * 60 * 60; // 1시간 상한 (여유있게)
 var TICKS_MAX = 1000000; // 넉넉한 상한
 var VALID_ENDED_BY = ['collision', 'win'];
+var VALID_GAME_MODES = ['EASY', 'HARD'];
 var VALID_VERSION_RE = /^\d+\.\d+\.\d+$/;
 
 var CALLBACK_RE = /^__gajwaCb_[A-Za-z0-9_]+$/;
@@ -161,13 +162,13 @@ function setUp() {
     top10 = ss.insertSheet(TOP10_SHEET_NAME);
   }
   top10.clear();
-  top10.getRange(1, 1, 1, 6).setValues([['rank', 'grade', 'classNo', 'studentId', 'name', 'score']]);
+  top10.getRange(1, 1, 1, 7).setValues([['gameMode', 'rank', 'grade', 'classNo', 'studentId', 'name', 'score']]);
   top10.setFrozenRows(1);
   var top10Rows = Math.max(top10.getMaxRows(), 200);
   if (top10.getMaxRows() < top10Rows) {
     top10.insertRowsAfter(top10.getMaxRows(), top10Rows - top10.getMaxRows());
   }
-  top10.getRange(1, 1, top10Rows, 6).setNumberFormat('@STRING@');
+  top10.getRange(1, 1, top10Rows, 7).setNumberFormat('@STRING@');
 
   var props = PropertiesService.getScriptProperties();
   if (!props.getProperty(PROP_REVISION)) {
@@ -268,39 +269,30 @@ function buildJsonpResponse_(callback, obj) {
 function handleLeaderboard_(params) {
   var gradeRaw = params.grade;
   var classNoRaw = params.classNo;
+  var gameMode = normalizeGameMode_(params.gameMode, true);
+  if (!gameMode) return { ok: false, error: 'INVALID_GAME_MODE', message: 'gameMode는 EASY 또는 HARD여야 합니다.' };
 
   var grade = null, classNo = null;
   if (gradeRaw !== undefined && gradeRaw !== null && gradeRaw !== '') {
     grade = Number(gradeRaw);
-    if (!isInt_(grade) || grade < GRADE_MIN || grade > GRADE_MAX) {
-      return { ok: false, error: 'INVALID_GRADE', message: 'grade는 1~6 사이 정수여야 합니다.' };
-    }
+    if (!isInt_(grade) || grade < GRADE_MIN || grade > GRADE_MAX) return { ok: false, error: 'INVALID_GRADE', message: 'grade는 1~6 사이 정수여야 합니다.' };
   }
   if (classNoRaw !== undefined && classNoRaw !== null && classNoRaw !== '') {
     classNo = Number(classNoRaw);
-    if (!isInt_(classNo) || classNo < CLASS_MIN || classNo > CLASS_MAX) {
-      return { ok: false, error: 'INVALID_CLASSNO', message: 'classNo는 1~10 사이 정수여야 합니다.' };
-    }
+    if (!isInt_(classNo) || classNo < CLASS_MIN || classNo > CLASS_MAX) return { ok: false, error: 'INVALID_CLASSNO', message: 'classNo는 1~10 사이 정수여야 합니다.' };
   }
 
-  var cacheKey = 'lb:' + (grade === null ? '*' : grade) + ':' + (classNo === null ? '*' : classNo);
+  var cacheKey = 'lb:' + gameMode + ':' + (grade === null ? '*' : grade) + ':' + (classNo === null ? '*' : classNo);
   var cached = readLeaderboardCache_(cacheKey);
   if (cached) {
-    if (params.studentId && /^[0-9]{1,12}$/.test(String(params.studentId))) cached.personalBest = personalBest_(String(params.studentId), Number(params.studentGrade), Number(params.studentClass));
+    if (params.studentId && /^[0-9]{1,12}$/.test(String(params.studentId))) cached.personalBest = personalBest_(String(params.studentId), Number(params.studentGrade), Number(params.studentClass), gameMode);
     return cached;
   }
 
-  var entries = computeLeaderboard_(grade, classNo);
-  var revision = getRevision_();
-  var result = {
-    ok: true,
-    entries: entries,
-    updatedAt: new Date().toISOString(),
-    revision: revision
-  };
-
+  var entries = computeLeaderboard_(grade, classNo, gameMode);
+  var result = {ok:true, gameMode:gameMode, entries:entries, updatedAt:new Date().toISOString(), revision:getRevision_()};
   writeLeaderboardCache_(cacheKey, result);
-  if (params.studentId && /^[0-9]{1,12}$/.test(String(params.studentId))) result.personalBest = personalBest_(String(params.studentId), Number(params.studentGrade), Number(params.studentClass));
+  if (params.studentId && /^[0-9]{1,12}$/.test(String(params.studentId))) result.personalBest = personalBest_(String(params.studentId), Number(params.studentGrade), Number(params.studentClass), gameMode);
   return result;
 }
 
@@ -309,77 +301,20 @@ function handleLeaderboard_(params) {
  * 경쟁 순위(동점 처리: 1,1,3,4,4,6...)를 매기고 rank<=10 인 항목만 반환합니다.
  * (동점으로 10위가 여러 명이면 10명을 넘겨서 반환될 수 있습니다.)
  */
-function computeLeaderboard_(grade, classNo) {
-  var sheet = getRecordsSheet_();
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) {
-    return [];
-  }
-  var numRows = lastRow - 1;
-  var values = sheet.getRange(2, 1, numRows, HEADER.length).getValues();
-
-  // studentId -> best record
+function computeLeaderboard_(grade, classNo, gameMode) {
+  gameMode = normalizeGameMode_(gameMode, true) || 'HARD';
+  var rows = readRecordRows_().filter(function(r){ return r.gameMode === gameMode; });
   var bestByStudent = {};
-
-  for (var i = 0; i < values.length; i++) {
-    var row = values[i];
-    var rRunId = row[0];
-    var rStudentId = String(row[1]);
-    var rName = row[2];
-    var rGrade = Number(row[3]);
-    var rClassNo = Number(row[4]);
-    var rScore = Number(row[5]);
-    var rSavedAt = row[10];
-
-    if (!rRunId) continue; // 빈 행 스킵
-    if (grade !== null && rGrade !== grade) continue;
-    if (classNo !== null && rClassNo !== classNo) continue;
-
-    var identityKey = rGrade + ':' + rClassNo + ':' + rStudentId;
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    if (grade !== null && r.grade !== grade) continue;
+    if (classNo !== null && r.classNo !== classNo) continue;
+    var identityKey = r.grade + ':' + r.classNo + ':' + r.studentId;
     var existing = bestByStudent[identityKey];
-    if (!existing || rScore > existing.score) {
-      bestByStudent[identityKey] = {
-        studentId: rStudentId,
-        name: rName,
-        grade: rGrade,
-        classNo: rClassNo,
-        score: rScore,
-        savedAt: toIsoString_(rSavedAt)
-      };
-    }
+    if (!existing || r.score > existing.score || (r.score === existing.score && String(r.savedAt) < String(existing.savedAt))) bestByStudent[identityKey] = r;
   }
-
-  var list = Object.keys(bestByStudent).map(function (k) { return bestByStudent[k]; });
-  list.sort(function (a, b) { return b.score - a.score || String(a.savedAt).localeCompare(String(b.savedAt)) || String(a.studentId).localeCompare(String(b.studentId)); });
-
-  // 경쟁 순위 부여
-  var ranked = [];
-  var prevScore = null;
-  var prevRank = 0;
-  for (var idx = 0; idx < list.length; idx++) {
-    var item = list[idx];
-    var rank;
-    if (prevScore !== null && item.score === prevScore) {
-      rank = prevRank;
-    } else {
-      rank = idx + 1;
-    }
-    prevScore = item.score;
-    prevRank = rank;
-
-    if (rank > 10) break; // 리스트는 점수 내림차순이므로 10 초과 순위가 나오면 이후도 전부 10 초과
-    ranked.push({
-      rank: rank,
-      studentId: item.studentId,
-      name: item.name,
-      grade: item.grade,
-      classNo: item.classNo,
-      score: item.score,
-      savedAt: item.savedAt
-    });
-  }
-
-  return ranked;
+  var list = Object.keys(bestByStudent).map(function(k){ return bestByStudent[k]; });
+  return rankTop10_(list).map(function(r){ r.gameMode = gameMode; return r; });
 }
 
 // ----------------------------------------------------------------------------
@@ -407,7 +342,7 @@ function findRecordByRunId_(runId) {
   var runIds = sheet.getRange(2, 1, numRows, 1).getValues();
   for (var i = 0; i < runIds.length; i++) {
     if (String(runIds[i][0]) === runId) {
-      var savedAt = sheet.getRange(2 + i, HEADER.length, 1, 1).getValue();
+      var savedAt = sheet.getRange(2 + i, 11, 1, 1).getValue();
       return { savedAt: savedAt };
     }
   }
@@ -508,7 +443,8 @@ function handleSubmit_(payloadRaw) {
       clean.ticks,
       clean.endedBy,
       clean.version,
-      savedAt.toISOString()
+      savedAt.toISOString(),
+      clean.gameMode
     ];
     sheet.getRange(sheet.getLastRow() + 1, 1, 1, row.length).setValues([row]);
 
@@ -563,6 +499,10 @@ function validateSubmission_(data) {
     return { ok: false, error: 'ID_CLASS_MISMATCH', message: '학번과 학년/반 정보가 일치하지 않습니다.' };
   }
 
+  // gameMode: 이전 클라이언트에서 누락되면 기존 HARD로 간주
+  var gameMode = normalizeGameMode_(data.gameMode, true);
+  if (!gameMode) return { ok: false, error: 'INVALID_GAME_MODE', message: 'gameMode는 EASY 또는 HARD여야 합니다.' };
+
   // score
   var score = Number(data.score);
   if (!isInt_(score) || score < SCORE_MIN || score > SCORE_MAX) {
@@ -603,9 +543,16 @@ function validateSubmission_(data) {
       elapsedMs: elapsedMs,
       ticks: ticks,
       endedBy: data.endedBy,
-      version: data.version
+      version: data.version,
+      gameMode: gameMode
     }
   };
+}
+
+function normalizeGameMode_(value, defaultHard) {
+  if (value === undefined || value === null || value === '') return defaultHard ? 'HARD' : null;
+  var mode = String(value).toUpperCase();
+  return VALID_GAME_MODES.indexOf(mode) >= 0 ? mode : null;
 }
 
 function isInt_(n) {
@@ -666,12 +613,10 @@ function writeLeaderboardCache_(key, value) {
   if (text.length < 60000) CacheService.getScriptCache().put(key, text, 3);
 }
 
-function personalBest_(studentId, grade, classNo) {
-  var sheet = getRecordsSheet_();
-  if (sheet.getLastRow() < 2) return 0;
-  var values = sheet.getRange(2, 1, sheet.getLastRow()-1, HEADER.length).getValues();
-  var best = 0;
-  values.forEach(function(row){ if(String(row[1])===studentId && Number(row[3])===grade && Number(row[4])===classNo) best=Math.max(best,Number(row[5])||0); });
+function personalBest_(studentId, grade, classNo, gameMode) {
+  gameMode = normalizeGameMode_(gameMode, true) || 'HARD';
+  var rows = readRecordRows_(), best = 0;
+  rows.forEach(function(r){ if(r.gameMode===gameMode && r.studentId===studentId && r.grade===grade && r.classNo===classNo) best=Math.max(best,r.score||0); });
   return best;
 }
 
@@ -689,21 +634,14 @@ function refreshTeacherRanking() {
 function rebuildTop10Sheet_() {
   var ss = getSpreadsheet_();
   var top10 = ss.getSheetByName(TOP10_SHEET_NAME);
-  if (!top10) return; // setUp 미실행 시 조용히 스킵
-
-  var entries = computeLeaderboard_(null, null);
-
+  if (!top10) return;
   var lastRow = top10.getLastRow();
-  if (lastRow > 1) {
-    top10.getRange(2, 1, lastRow - 1, 6).clearContent();
-  }
-
-  if (entries.length === 0) return;
-
-  var rows = entries.map(function (e) {
-    return [e.rank, e.grade, e.classNo, sanitizeSheetCell_(e.studentId), sanitizeSheetCell_(e.name), e.score];
+  if (lastRow > 1) top10.getRange(2, 1, lastRow - 1, 7).clearContent();
+  var rows = [];
+  ['EASY','HARD'].forEach(function(mode){
+    computeLeaderboard_(null, null, mode).forEach(function(e){ rows.push([mode,e.rank,e.grade,e.classNo,sanitizeSheetCell_(e.studentId),sanitizeSheetCell_(e.name),e.score]); });
   });
-  top10.getRange(2, 1, rows.length, 6).setValues(rows);
+  if (rows.length) top10.getRange(2, 1, rows.length, 7).setValues(rows);
 }
 
 // ============================================================================
@@ -732,7 +670,7 @@ function readRecordRows_() {
   for (var i = 0; i < values.length; i++) {
     var r = values[i];
     if (!r[0]) continue;
-    rows.push({ studentId: String(r[1]), name: String(r[2]), grade: Number(r[3]), classNo: Number(r[4]), score: Number(r[5]) || 0, savedAt: toIsoString_(r[10]) });
+    rows.push({ studentId: String(r[1]), name: String(r[2]), grade: Number(r[3]), classNo: Number(r[4]), score: Number(r[5]) || 0, savedAt: toIsoString_(r[10]), gameMode: normalizeGameMode_(r[11], true) || 'HARD' });
   }
   return rows;
 }
@@ -759,64 +697,29 @@ function rankTop10_(list) {
   return out;
 }
 
-function computeBoard_(grade, classNo) {
-  var rows = readRecordRows_();
+function computeBoard_(grade, classNo, gameMode) {
+  gameMode = normalizeGameMode_(gameMode, true) || 'HARD';
+  var rows = readRecordRows_().filter(function(r){ return r.gameMode === gameMode; });
   var bests = bestPerStudent_(rows);
-  var inScope = function (r) { return (grade === null || r.grade === grade) && (classNo === null || r.classNo === classNo); };
+  var inScope = function(r){ return (grade === null || r.grade === grade) && (classNo === null || r.classNo === classNo); };
   var scoped = bests.filter(inScope);
-
   var groups = {};
-  bests.forEach(function (r) {
-    var key = r.grade + ':' + r.classNo;
-    var g = groups[key] || (groups[key] = { grade: r.grade, classNo: r.classNo, participants: 0, total: 0, top: 0 });
-    g.participants++; g.total += r.score; g.top = Math.max(g.top, r.score);
+  bests.forEach(function(r){
+    var key=r.grade+':'+r.classNo, g=groups[key]||(groups[key]={grade:r.grade,classNo:r.classNo,participants:0,total:0,top:0});
+    g.participants++; g.total+=r.score; g.top=Math.max(g.top,r.score);
   });
-  var classStats = Object.keys(groups).map(function (k) {
-    var g = groups[k];
-    return { grade: g.grade, classNo: g.classNo, participants: g.participants, average: Math.round(g.total / g.participants * 10) / 10, top: g.top };
-  }).sort(function (a, b) { return a.grade - b.grade || a.classNo - b.classNo; });
-
-  var recent = [];
-  for (var i = rows.length - 1; i >= 0 && recent.length < 5; i--) {
-    var r = rows[i];
-    recent.push({ studentId: r.studentId, name: r.name, grade: r.grade, classNo: r.classNo, score: r.score, savedAt: r.savedAt });
-  }
-
-  return {
-    entries: rankTop10_(scoped),
-    participants: scoped.length,
-    plays: rows.filter(inScope).length,
-    classStats: classStats,
-    recent: recent
-  };
+  var classStats=Object.keys(groups).map(function(k){var g=groups[k];return {grade:g.grade,classNo:g.classNo,participants:g.participants,average:Math.round(g.total/g.participants*10)/10,top:g.top};}).sort(function(a,b){return a.grade-b.grade||a.classNo-b.classNo;});
+  var recent=[];
+  for(var i=rows.length-1;i>=0&&recent.length<5;i--){var r=rows[i];if(inScope(r))recent.push({studentId:r.studentId,name:r.name,grade:r.grade,classNo:r.classNo,score:r.score,savedAt:r.savedAt,gameMode:gameMode});}
+  return {entries:rankTop10_(scoped),participants:scoped.length,plays:rows.filter(inScope).length,classStats:classStats,recent:recent};
 }
 
 function handleBoard_(params) {
-  var grade = null, classNo = null;
-  if (params.grade !== undefined && params.grade !== '') {
-    grade = Number(params.grade);
-    if (!isInt_(grade) || grade < GRADE_MIN || grade > GRADE_MAX) return { ok: false, error: 'INVALID_GRADE', message: 'grade는 1~6 사이 정수여야 합니다.' };
-  }
-  if (params.classNo !== undefined && params.classNo !== '') {
-    classNo = Number(params.classNo);
-    if (!isInt_(classNo) || classNo < CLASS_MIN || classNo > CLASS_MAX) return { ok: false, error: 'INVALID_CLASSNO', message: 'classNo는 1~10 사이 정수여야 합니다.' };
-  }
-  var cacheKey = 'bd:' + (grade === null ? '*' : grade) + ':' + (classNo === null ? '*' : classNo);
-  var cached = readLeaderboardCache_(cacheKey);
-  if (cached) return cached;
-
-  var board = computeBoard_(grade, classNo);
-  var result = {
-    ok: true,
-    scope: { grade: grade, classNo: classNo },
-    entries: board.entries,
-    participants: board.participants,
-    plays: board.plays,
-    classStats: board.classStats,
-    recent: board.recent,
-    updatedAt: new Date().toISOString(),
-    revision: getRevision_()
-  };
-  writeLeaderboardCache_(cacheKey, result);
-  return result;
+  var grade=null,classNo=null,gameMode=normalizeGameMode_(params.gameMode,true);
+  if(!gameMode)return {ok:false,error:'INVALID_GAME_MODE',message:'gameMode는 EASY 또는 HARD여야 합니다.'};
+  if(params.grade!==undefined&&params.grade!==''){grade=Number(params.grade);if(!isInt_(grade)||grade<GRADE_MIN||grade>GRADE_MAX)return {ok:false,error:'INVALID_GRADE',message:'grade는 1~6 사이 정수여야 합니다.'};}
+  if(params.classNo!==undefined&&params.classNo!==''){classNo=Number(params.classNo);if(!isInt_(classNo)||classNo<CLASS_MIN||classNo>CLASS_MAX)return {ok:false,error:'INVALID_CLASSNO',message:'classNo는 1~10 사이 정수여야 합니다.'};}
+  var cacheKey='bd:'+gameMode+':'+(grade===null?'*':grade)+':'+(classNo===null?'*':classNo),cached=readLeaderboardCache_(cacheKey);if(cached)return cached;
+  var board=computeBoard_(grade,classNo,gameMode),result={ok:true,gameMode:gameMode,scope:{grade:grade,classNo:classNo,gameMode:gameMode},entries:board.entries,participants:board.participants,plays:board.plays,classStats:board.classStats,recent:board.recent,updatedAt:new Date().toISOString(),revision:getRevision_()};
+  writeLeaderboardCache_(cacheKey,result);return result;
 }

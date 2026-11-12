@@ -7,19 +7,24 @@
 <meta name="description" content="가좌중학교 스네이크 게임 입장. 학번과 이름을 입력하세요.">
 <title>가좌 스네이크 · 입장</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=20261109-grade6-large">
+<link rel="stylesheet" href="style.css?v=20261112-modes1">
 </head>
 <body class="entry-body">
 <main class="entry">
   <section class="entry-card" aria-labelledby="entry-title">
     <div class="entry-hero" aria-hidden="true">
       <img src="gajwa-cookie-logo-v2.webp" class="hero-emblem" alt="" width="120" height="120">
-      <div class="hero-copy"><b>COOKIE RUN</b><span>10 × 9 작은 게임판<br>쿠키 10개 동시 등장</span></div>
+      <div class="hero-copy"><b>COOKIE RUN</b><span>10 × 9 게임판<br>EASY · HARD 선택</span></div>
     </div>
     <span class="eyebrow">GAJWA MIDDLE SCHOOL</span>
     <h1 id="entry-title">가좌 스네이크</h1>
     <p class="entry-lead">학번과 이름을 입력하고 게임을 시작하세요.</p>
     <form id="entry-form" novalidate>
+      <fieldset class="difficulty-picker">
+        <legend>게임 난이도</legend>
+        <label class="mode-card easy"><input type="radio" name="gameMode" value="EASY" checked><span><b>EASY</b><small>초등 3학년 추천 · 속도 70% · 쿠키 7개</small></span></label>
+        <label class="mode-card hard"><input type="radio" name="gameMode" value="HARD"><span><b>HARD</b><small>기존 속도 · 쿠키 10개</small></span></label>
+      </fieldset>
       <label for="student-id">학번</label>
       <input id="student-id" name="studentId" required inputmode="numeric" maxlength="5" autocomplete="off" placeholder="예: 10203" aria-describedby="id-preview">
       <p id="id-preview" class="id-preview" aria-live="polite">학번 5자리 = 학년(1~6) + 반(01~10) + 번호(01~99)</p>
@@ -33,11 +38,11 @@
       <p id="entry-error" class="entry-error" role="alert"></p>
       <button type="submit" class="primary entry-submit">게임 시작하기</button>
     </form>
-    <a class="board-link" href="board.html?v=20261109-grade6-large">실시간 랭킹 보드 보기 →</a>
+    <a class="board-link" id="entry-board-link" href="board.html?gameMode=EASY&v=20261112-modes1">선택한 모드 랭킹 보기 →</a>
   </section>
-  <p class="entry-foot">이 브라우저에서 최근 10분 같은 학번·이름으로 3판까지 · 쿠키 1개 = 1점 · 동시에 10개 · 개인 최고점으로 랭킹이 정해져요 · 중도 종료한 판은 저장되지 않아요</p>
+  <p class="entry-foot">이 브라우저에서 최근 10분 같은 학번·이름으로 3판까지 · 쿠키 1개 = 1점 · EASY 7개 · HARD 10개 · 모드별 최고점으로 랭킹이 정해져요 · 중도 종료한 판은 저장되지 않아요</p>
 </main>
-<script src="config.js?v=20261109-grade6-large"></script>
-<script type="module" src="entry.mjs?v=20261109-grade6-large"></script>
+<script src="config.js?v=20261112-modes1"></script>
+<script type="module" src="entry.mjs?v=20261112-modes1"></script>
 </body>
 </html>

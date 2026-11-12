@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import {faceMotion} from './face.mjs';
 import {ATTEMPT_LIMIT, ATTEMPT_WINDOW_MS, activeAttempts, quotaStatus, consumeAttempt, attemptKey} from './attempts.mjs';
-import {RULES,makeState,advance,DIRECTIONS,allowed,routeForFrame,pointAt,newFood,rankEntries,enqueueDirection,directionFromKey,parseStudentId} from './engine.mjs';
+import {RULES,GAME_MODES,rulesForMode,makeState,advance,DIRECTIONS,allowed,routeForFrame,pointAt,newFood,rankEntries,enqueueDirection,directionFromKey,parseStudentId} from './engine.mjs';
 let passed=0;function test(name,fn){fn();passed++;console.log('PASS '+name);}
 const key=p=>p.x+','+p.y;
 const initialFoods=[{x:1,y:0},{x:5,y:0},{x:3,y:2},{x:7,y:2},{x:5,y:4},{x:9,y:4},{x:3,y:6},{x:7,y:6},{x:1,y:8},{x:5,y:8}];
-test('screenshot board and initial snake match contract',()=>{const s=makeState();assert.deepEqual([RULES.cols,RULES.rows,RULES.foodCount,RULES.version,RULES.initialLength],[10,9,10,'1.2.5',4]);assert.deepEqual(s.snake,[{x:3,y:4},{x:2,y:4},{x:1,y:4},{x:0,y:4}]);});
-test('speed is 1.3 times the former 130ms tick',()=>assert.equal(RULES.tickMs,100));
+test('screenshot board and initial snake match contract',()=>{const s=makeState();assert.deepEqual([RULES.cols,RULES.rows,RULES.foodCount,RULES.version,RULES.initialLength],[10,9,10,'1.4.0',4]);assert.deepEqual(s.snake,[{x:3,y:4},{x:2,y:4},{x:1,y:4},{x:0,y:4}]);});
+test('HARD keeps 100ms and EASY runs at 70 percent speed with 143ms ticks',()=>{assert.equal(GAME_MODES.HARD.tickMs,100);assert.equal(GAME_MODES.EASY.tickMs,143);assert.ok(Math.abs(GAME_MODES.HARD.tickMs/GAME_MODES.EASY.tickMs-.7)<.01);});
+test('EASY starts and refills with seven cookies while HARD keeps ten',()=>{const easy=makeState('EASY'),hard=makeState('HARD');assert.equal(easy.foods.length,7);assert.equal(easy.foodCount,7);assert.equal(hard.foods.length,10);const eating={...easy,foods:[{x:4,y:4},...easy.foods.slice(1)]};assert.equal(advance(eating,undefined,()=>0).foods.length,7);assert.equal(rulesForMode('easy').id,'EASY');});
 test('initial ten cookies are unique and match screenshot',()=>{const s=makeState();assert.deepEqual(s.foods,initialFoods);assert.equal(new Set(s.foods.map(key)).size,10);assert.deepEqual(s.food,s.foods[0]);assert.equal(s.ateFood,null);});
 test('consuming a nonfirst cookie scores, grows, and retains other cookies',()=>{const s={...makeState(),foods:[{x:1,y:0},{x:4,y:4},...initialFoods.slice(2)]};const n=advance(s,DIRECTIONS.right,()=>0);assert.equal(n.score,1);assert.equal(n.snake.length,5);assert.deepEqual(n.ateFood,{x:4,y:4});assert.ok(!n.foods.some(p=>p.x===4&&p.y===4));assert.ok(n.foods.some(p=>p.x===1&&p.y===0));assert.equal(n.foods.length,10);assert.deepEqual(n.food,n.foods[0]);});
 test('refills never duplicate or overlap snake or existing cookies',()=>{const s={...makeState(),foods:[{x:4,y:4},...initialFoods.slice(1)]};const n=advance(s,undefined,()=>0);assert.equal(n.foods.length,10);assert.equal(new Set(n.foods.map(key)).size,n.foods.length);assert.ok(n.foods.every(food=>!n.snake.some(part=>key(part)===key(food))));});
@@ -26,6 +27,7 @@ test('competition ranks tied scores',()=>assert.deepEqual(rankEntries(records).m
 test('class filter applied before ranking',()=>assert.deepEqual(rankEntries(records,{grade:2,classNo:2}).map(r=>r.rank),[1]));
 test('ties at rank ten are not arbitrarily cut off',()=>{const a=Array.from({length:13},(_,i)=>({studentId:String(i),grade:1,classNo:1,score:i<9?100-i:1,savedAt:'2026-10-06'}));const r=rankEntries(a);assert.equal(r.length,13);assert.ok(r.slice(9).every(x=>x.rank===10));});
 test('same short ID in different classes stays separate',()=>{assert.equal(rankEntries([...records,{studentId:'10101',name:'다른가상',grade:2,classNo:3,score:8,savedAt:'2026-10-06'}]).length,4);});
+test('EASY and HARD rankings are independent and legacy rows count as HARD',()=>{const mixed=[...records,{studentId:'10101',name:'가상A',grade:1,classNo:1,score:99,savedAt:'2026-10-07',gameMode:'EASY'}];assert.equal(rankEntries(mixed,{gameMode:'EASY'})[0].score,99);assert.equal(rankEntries(mixed,{gameMode:'HARD'})[0].score,10);});
 const {up,down,left,right}=DIRECTIONS;
 test('two quick turns in one tick are both kept (no dropped key)',()=>{let q=enqueueDirection([],right,up);q=enqueueDirection(q,right,left);assert.deepEqual(q,[up,left]);});
 test('buffered turn validated against last queued direction',()=>{let q=enqueueDirection([],right,up);assert.deepEqual(enqueueDirection(q,right,down),[up]);assert.deepEqual(enqueueDirection([],right,left),[]);});
