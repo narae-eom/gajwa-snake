@@ -1,7 +1,7 @@
-import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection, normalizeGameMode, rulesForMode} from './engine.mjs?v=20261112-modes5';
+import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection, normalizeGameMode, rulesForMode} from './engine.mjs?v=20261112-modes6';
 import {$, cfg, jsonp, loadProfile, clearProfile, studentLabel} from './common.mjs';
-import {ATTEMPT_LIMIT, attemptKey, quotaStatus, consumeAttempt} from './attempts.mjs?v=20261112-modes5';
-import {faceMotion} from './face.mjs?v=20261112-modes5';
+import {ATTEMPT_LIMIT, attemptKey, quotaStatus, consumeAttempt} from './attempts.mjs?v=20261112-modes6';
+import {faceMotion} from './face.mjs?v=20261112-modes6';
 
 const profile = loadProfile();
 if (!profile) location.replace('./');
@@ -30,7 +30,7 @@ const statuses = {ready: '준비', running: '플레이 중', collision: '게임 
 if (profile) {
   $('#profile-name').textContent = profile.name;
   $('#profile-detail').textContent = studentLabel(profile) + ' · ' + gameMode;
-  $('#board-link').href = 'board.html?grade=' + profile.grade + '&cls=' + profile.classNo + '&gameMode=' + gameMode + '&v=20261112-modes5';
+  $('#board-link').href = 'board.html?grade=' + profile.grade + '&cls=' + profile.classNo + '&gameMode=' + gameMode + '&v=20261112-modes6';
   document.body.dataset.gameMode = gameMode;
   game.dataset.gameMode = gameMode;
   game.setAttribute('aria-label', gameMode + ' 스네이크 게임판. 방향키 또는 WASD로 조작합니다.');
@@ -609,7 +609,7 @@ refreshMine();
 
 // Read-only runtime metrics for development checks; no personal data exposed.
 window.GAJWA_DEBUG = Object.freeze({
-  getState: () => ({mode: state.mode, gameMode, tickMs: activeRules.tickMs, targetFoodCount: activeRules.foodCount, score: state.score, ticks: state.ticks, progress, queue: queue.length, head: {...state.snake[0]}, direction: {...state.direction}, cols: RULES.cols, rows: RULES.rows, foodCount: state.foods.length, foods: state.foods.map(p => ({...p})), snakeLength: state.snake.length, displayLength: state.displayLength, overlayVisible, effects: effectCount(), lastSound, mouth, tongue}),
+  getState: () => ({mode: state.mode, gameMode, tickMs: activeRules.tickMs, targetFoodCount: activeRules.foodCount, score: state.score, ticks: state.ticks, progress, queue: queue.length, head: {...state.snake[0]}, direction: {...state.direction}, cols: RULES.cols, rows: RULES.rows, foodCount: state.foods.length, foods: state.foods.map(p => ({...p})), snakeLength: state.snake.length, displayLength: state.displayLength, pendingGrowth: state.pendingGrowth, growthClock: state.growthClock, overlayVisible, effects: effectCount(), lastSound, mouth, tongue}),
   getPendingCount: () => pending.size,
   getAttempts: () => ({remaining:quotaRemaining, resetAt:quotaResetAt, ready:!!quotaKey, error:quotaError}),
 });

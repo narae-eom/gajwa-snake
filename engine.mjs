@@ -1,4 +1,4 @@
-const BASE_RULES=Object.freeze({cols:10,rows:9,initialLength:4,version:'1.4.1',inputBuffer:3,turnGrace:.25,growthPerTick:.6});
+const BASE_RULES=Object.freeze({cols:10,rows:9,initialLength:4,version:'1.4.2',inputBuffer:3,turnGrace:.25,growthDelayTicks:3});
 export const GAME_MODES=Object.freeze({
   EASY:Object.freeze({...BASE_RULES,id:'EASY',label:'EASY',tickMs:204,foodCount:7,speedRatio:.49}),
   HARD:Object.freeze({...BASE_RULES,id:'HARD',label:'HARD',tickMs:100,foodCount:10,speedRatio:1})
@@ -10,10 +10,25 @@ export const DIRECTIONS = Object.freeze({up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1
 export const equal=(a,b)=>!!a&&!!b&&a.x===b.x&&a.y===b.y;
 const INITIAL_FOODS=Object.freeze([{x:1,y:0},{x:5,y:0},{x:3,y:2},{x:7,y:2},{x:5,y:4},{x:9,y:4},{x:3,y:6},{x:7,y:6},{x:1,y:8},{x:5,y:8}]);
 const withFoodAlias=state=>({...state,food:state.foods[0]??null});
-export function makeState(gameMode='HARD'){const rules=rulesForMode(gameMode);return withFoodAlias({snake:[{x:3,y:4},{x:2,y:4},{x:1,y:4},{x:0,y:4}],direction:DIRECTIONS.right,foods:INITIAL_FOODS.slice(0,rules.foodCount).map(p=>({...p})),foodCount:rules.foodCount,gameMode:rules.id,score:0,ticks:0,mode:'ready',ate:false,ateFood:null,displayLength:rules.initialLength});}
+export function makeState(gameMode='HARD'){const rules=rulesForMode(gameMode);return withFoodAlias({snake:[{x:3,y:4},{x:2,y:4},{x:1,y:4},{x:0,y:4}],direction:DIRECTIONS.right,foods:INITIAL_FOODS.slice(0,rules.foodCount).map(p=>({...p})),foodCount:rules.foodCount,gameMode:rules.id,score:0,ticks:0,mode:'ready',ate:false,ateFood:null,displayLength:rules.initialLength,pendingGrowth:0,growthClock:0});}
 export function allowed(direction,next){return !!next&&!(direction.x===-next.x&&direction.y===-next.y);}
 export function newFood(snake,random=Math.random,excluded=[]){const free=[];for(let y=0;y<RULES.rows;y++)for(let x=0;x<RULES.cols;x++){const point={x,y};if(!snake.some(p=>equal(p,point))&&!excluded.some(p=>equal(p,point)))free.push(point);}return free.length?free[Math.min(free.length-1,Math.floor(random()*free.length))]:null;}
-export function advance(state,direction=state.direction,random=Math.random){const d=allowed(state.direction,direction)?direction:state.direction;const head={x:state.snake[0].x+d.x,y:state.snake[0].y+d.y};const foods=state.foods??(state.food?[state.food]:[]);const ateFood=foods.find(food=>equal(head,food))??null;const body=ateFood?state.snake:state.snake.slice(0,-1);if(head.x<0||head.y<0||head.x>=RULES.cols||head.y>=RULES.rows||body.some(p=>equal(p,head)))return withFoodAlias({...state,foods,direction:d,mode:'collision',crashDirection:d,ticks:state.ticks+1,ate:false,ateFood:null});const snake=[head,...state.snake];if(!ateFood)snake.pop();let nextFoods=ateFood?foods.filter(food=>!equal(food,ateFood)):foods;const target=Math.min(Number(state.foodCount)||rulesForMode(state.gameMode).foodCount,RULES.cols*RULES.rows-snake.length);while(ateFood&&nextFoods.length<target){const food=newFood(snake,random,nextFoods);if(!food)break;nextFoods=[...nextFoods,food];}const oldDisplay=Number.isFinite(state.displayLength)?state.displayLength:state.snake.length;const displayLength=Math.min(snake.length,oldDisplay+rulesForMode(state.gameMode).growthPerTick);return withFoodAlias({...state,snake,direction:d,foods:nextFoods,score:state.score+(ateFood?1:0),ticks:state.ticks+1,mode:snake.length===RULES.cols*RULES.rows?'win':'running',ate:!!ateFood,ateFood,displayLength});}
+export function advance(state,direction=state.direction,random=Math.random){
+  const rules=rulesForMode(state.gameMode),d=allowed(state.direction,direction)?direction:state.direction;
+  const head={x:state.snake[0].x+d.x,y:state.snake[0].y+d.y},foods=state.foods??(state.food?[state.food]:[]),ateFood=foods.find(food=>equal(head,food))??null;
+  const pending=Math.max(0,Number(state.pendingGrowth)||0),clock=Math.max(0,Number(state.growthClock)||0),dense=!!ateFood&&foods.length>=RULES.cols*RULES.rows-state.snake.length;
+  const due=pending>0&&clock>=rules.growthDelayTicks-1,tail=state.snake.at(-1);let growNow=dense||due;
+  if(growNow&&equal(head,tail))growNow=false;
+  const body=growNow?state.snake:state.snake.slice(0,-1);
+  if(head.x<0||head.y<0||head.x>=RULES.cols||head.y>=RULES.rows||body.some(p=>equal(p,head)))return withFoodAlias({...state,foods,direction:d,mode:'collision',crashDirection:d,ticks:state.ticks+1,ate:false,ateFood:null});
+  const snake=[head,...state.snake];if(!growNow)snake.pop();
+  let nextFoods=ateFood?foods.filter(food=>!equal(food,ateFood)):foods;const target=Math.min(Number(state.foodCount)||rules.foodCount,RULES.cols*RULES.rows-snake.length);
+  while(ateFood&&nextFoods.length<target){const food=newFood(snake,random,nextFoods);if(!food)break;nextFoods=[...nextFoods,food];}
+  const pendingGrowth=Math.max(0,pending+(ateFood?1:0)-(growNow?1:0));
+  const growthClock=pendingGrowth===0||growNow?0:pending>0?clock+1:0;
+  const displayLength=snake.length;
+  return withFoodAlias({...state,snake,direction:d,foods:nextFoods,score:state.score+(ateFood?1:0),ticks:state.ticks+1,mode:snake.length===RULES.cols*RULES.rows?'win':'running',ate:!!ateFood,ateFood,displayLength,pendingGrowth,growthClock});
+}
 // The moving head and every body point share one orthogonal route; no diagonal interpolation at corners.
 export function routeForFrame(previous,current,alpha){const a=Math.max(0,Math.min(1,alpha)),from=previous.snake[0],to=current.snake[0];const head={x:from.x+(to.x-from.x)*a,y:from.y+(to.y-from.y)*a};const points=[head,...previous.snake];const t=previous.snake.at(-1),p=previous.snake.at(-2);points.push({x:t.x+(t.x-p.x)*.55,y:t.y+(t.y-p.y)*.55});const fromLength=Number.isFinite(previous.displayLength)?previous.displayLength:previous.snake.length,toLength=Number.isFinite(current.displayLength)?current.displayLength:current.snake.length;const length=Math.max(.35,fromLength-1+.35+(toLength-fromLength)*a);return {points,length,head,direction:current.direction};}
 export function pointAt(points,distance){let left=distance;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],length=Math.hypot(b.x-a.x,b.y-a.y);if(length===0)continue;if(left<=length)return {x:a.x+(b.x-a.x)*left/length,y:a.y+(b.y-a.y)*left/length};left-=length;}return points.at(-1);}
