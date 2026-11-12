@@ -5,7 +5,7 @@ import {installKoreanNameInput} from './name-input.mjs?v=20261007-6';
 const idInput = $('#student-id'), nameInput = $('#student-name'), preview = $('#id-preview'), error = $('#entry-error');
 const modeInputs = [...document.querySelectorAll('input[name=gameMode]')];
 const selectedMode = () => normalizeGameMode(modeInputs.find(input => input.checked)?.value || 'EASY');
-function syncModeLink(){ $('#entry-board-link').href = 'board.html?gameMode=' + selectedMode() + '&v=20261112-modes4'; }
+function syncModeLink(){ $('#entry-board-link').href = 'board.html?gameMode=' + selectedMode() + '&v=20261112-modes5'; }
 modeInputs.forEach(input => input.addEventListener('change', syncModeLink));
 installKoreanNameInput(nameInput, $('#name-mode'), $('#name-input-hint'));
 const existing = loadProfile();
@@ -46,6 +46,6 @@ $('#entry-form').addEventListener('submit', event => {
     return;
   }
   saveProfile({studentId: parsed.studentId, name, gameMode: selectedMode()});
-  location.href = 'play.html?v=20261112-modes4';
+  location.href = 'play.html?v=20261112-modes5';
 });
 (existing ? nameInput : idInput).focus({preventScroll:true});

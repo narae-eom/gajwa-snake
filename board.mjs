@@ -4,7 +4,7 @@ import {$, cfg, jsonp, classesPerGrade} from './common.mjs';
 const POLL_MS = Math.max(2000, Number(cfg.boardPollMs) || 3000);
 const LAST_CLASS_KEY = 'gajwa-board-last-class';
 // Keep all ranking views on the current page version, including reloads and shared links.
-const BOARD_VERSION = '20261112-modes4';
+const BOARD_VERSION = '20261112-modes5';
 let gameMode = normalizeGameMode(new URLSearchParams(location.search).get('gameMode'));
 const versionedUrl = new URL(location.href);
 versionedUrl.searchParams.set('v', BOARD_VERSION);
@@ -20,7 +20,7 @@ function readScope() {
   if (q.get('view') === 'all') return {type: 'all'};
   const grade = Number(q.get('grade')), classNo = Number(q.get('cls') || q.get('class'));
   if ([1, 2, 3, 4, 5, 6].includes(grade) && Number.isInteger(classNo) && classNo >= 1 && classNo <= 10) return {type: 'class', grade, classNo};
-  return null;
+  return {type: 'all'};
 }
 function writeScope(next) {
   scope = next;
@@ -60,7 +60,7 @@ function setGameMode(next){
   if (normalized === gameMode) return;
   gameMode = normalized; lastData = null; previousTop = new Map(); previousRecent = new Set(); firstRender = true;
   const url = new URL(location.href); url.searchParams.set('gameMode', gameMode); url.searchParams.set('v', BOARD_VERSION); history.replaceState(null, '', url);
-  if (scope) showBoard(); else showPicker();
+  if (!$('#picker').hidden) showPicker(); else showBoard();
 }
 
 // ---------- views ----------
@@ -68,9 +68,9 @@ function showBoard() {
   $('#picker').hidden = true;
   $('#board').hidden = false;
   $('#scope-toggle').hidden = false;
-  $('#change').hidden = false;
-  $('#change').textContent = '반 바꾸기';
   const isClass = scope.type === 'class';
+  $('#change').hidden = !isClass;
+  $('#change').textContent = '반 바꾸기';
   $('#title').textContent = gameMode + ' · ' + (isClass ? scope.grade + '학년 ' + scope.classNo + '반 실시간 랭킹' : '우리 학교 실시간 랭킹');
   $('#top-title').textContent = gameMode + ' ' + (isClass ? scope.classNo + '반 TOP 10' : '전교 TOP 10');
   syncModeButtons();
@@ -92,8 +92,8 @@ function showPicker() {
   $('#board').hidden = true;
   $('#picker').hidden = false;
   $('#scope-toggle').hidden = true;
-  $('#change').hidden = !scope;
-  $('#change').textContent = '돌아가기';
+  $('#change').hidden = false;
+  $('#change').textContent = '전체 랭킹';
   syncModeButtons();
   buildPicker(lastData?.classStats || []);
   if (!lastData) jsonp('board', {gameMode}).then(data => { lastData = data; buildPicker(data.classStats || []); }).catch(() => {});
@@ -250,20 +250,17 @@ $('#fullscreen').addEventListener('click', async () => {
 document.addEventListener('fullscreenchange', () => { $('#fullscreen').textContent = document.fullscreenElement ? '창 모드' : '전체화면'; });
 $('#scope-toggle').addEventListener('click', () => {
   if (scope.type === 'class') { writeScope({type: 'all'}); showBoard(); }
-  else {
-    const last = lastClass();
-    if (last) { writeScope(last); showBoard(); } else showPicker();
-  }
-});
-$('#change').addEventListener('click', () => {
-  if (!$('#picker').hidden && scope) showBoard();
   else showPicker();
 });
-document.querySelector('.pick-all').addEventListener('click', () => { writeScope({type: 'all'}); showBoard(); });
+$('#change').addEventListener('click', () => {
+  if (!$('#picker').hidden) { writeScope({type: 'all'}); showBoard(); }
+  else showPicker();
+});
 for (const button of document.querySelectorAll('[data-game-mode]')) button.addEventListener('click', () => setGameMode(button.dataset.gameMode));
 syncModeButtons();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(true); });
 
 tickClock();
 setInterval(tickClock, 1000);
-if (scope) { if (scope.type === 'class') writeScope(scope); showBoard(); } else showPicker();
+if (scope.type === 'class') writeScope(scope);
+showBoard();

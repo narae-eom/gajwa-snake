@@ -1,7 +1,7 @@
-import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection, normalizeGameMode, rulesForMode} from './engine.mjs?v=20261112-modes4';
+import {RULES, DIRECTIONS, makeState, advance, allowed, equal, routeForFrame, trimRoute, pointAt, directionFromKey, enqueueDirection, normalizeGameMode, rulesForMode} from './engine.mjs?v=20261112-modes5';
 import {$, cfg, jsonp, loadProfile, clearProfile, studentLabel} from './common.mjs';
-import {ATTEMPT_LIMIT, attemptKey, quotaStatus, consumeAttempt} from './attempts.mjs?v=20261112-modes4';
-import {faceMotion} from './face.mjs?v=20261112-modes4';
+import {ATTEMPT_LIMIT, attemptKey, quotaStatus, consumeAttempt} from './attempts.mjs?v=20261112-modes5';
+import {faceMotion} from './face.mjs?v=20261112-modes5';
 
 const profile = loadProfile();
 if (!profile) location.replace('./');
@@ -30,7 +30,7 @@ const statuses = {ready: '준비', running: '플레이 중', collision: '게임 
 if (profile) {
   $('#profile-name').textContent = profile.name;
   $('#profile-detail').textContent = studentLabel(profile) + ' · ' + gameMode;
-  $('#board-link').href = 'board.html?grade=' + profile.grade + '&cls=' + profile.classNo + '&gameMode=' + gameMode + '&v=20261112-modes4';
+  $('#board-link').href = 'board.html?grade=' + profile.grade + '&cls=' + profile.classNo + '&gameMode=' + gameMode + '&v=20261112-modes5';
   document.body.dataset.gameMode = gameMode;
   game.dataset.gameMode = gameMode;
   game.setAttribute('aria-label', gameMode + ' 스네이크 게임판. 방향키 또는 WASD로 조작합니다.');
